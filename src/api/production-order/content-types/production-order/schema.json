@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "production_orders",
+  "info": {
+    "singularName": "production-order",
+    "pluralName": "production-orders",
+    "displayName": "productionOrder",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uuid": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "open",
+        "partialBooked",
+        "booked",
+        "inProgress",
+        "partialDelivered",
+        "closed",
+        "cancelled"
+      ]
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "dueDate": {
+      "type": "date"
+    },
+    "startDate": {
+      "type": "date"
+    },
+    "products": {
+      "displayName": "Content",
+      "type": "component",
+      "repeatable": true,
+      "component": "production.content"
+    }
+  }
+}

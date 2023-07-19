@@ -1,0 +1,80 @@
+{
+  "kind": "collectionType",
+  "collectionName": "products",
+  "info": {
+    "singularName": "product",
+    "pluralName": "products",
+    "displayName": "product",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uuid": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "unity": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::unity.unity"
+    },
+    "categories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::category.category"
+    },
+    "group": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::group.group"
+    },
+    "expirationDays": {
+      "type": "integer"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "mp",
+        "sp",
+        "pt"
+      ]
+    },
+    "isSalable": {
+      "type": "boolean"
+    },
+    "saleInfo": {
+      "displayName": "saleInfo",
+      "type": "component",
+      "repeatable": false,
+      "component": "product-properties.sale-info"
+    },
+    "purchaseInfo": {
+      "displayName": "Purchase Info",
+      "type": "component",
+      "repeatable": false,
+      "component": "product-properties.purchase-info"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "image": {
+      "allowedTypes": [
+        "images"
+      ],
+      "type": "media",
+      "multiple": false
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "kind": "collectionType",
+  "collectionName": "warehouses",
+  "info": {
+    "singularName": "warehouse",
+    "pluralName": "warehouses",
+    "displayName": "Warehouse"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uuid": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "direct",
+        "indirect"
+      ]
+    },
+    "address": {
+      "displayName": "Address",
+      "type": "component",
+      "repeatable": false,
+      "component": "address.address"
+    },
+    "stocks": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::stock.stock",
+      "mappedBy": "warehouse"
+    }
+  }
+}

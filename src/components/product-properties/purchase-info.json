@@ -1,0 +1,20 @@
+{
+  "collectionName": "components_product_properties_purchase_infos",
+  "info": {
+    "displayName": "Purchase Info"
+  },
+  "options": {},
+  "attributes": {
+    "purchasePrice": {
+      "type": "decimal"
+    },
+    "iva": {
+      "type": "enumeration",
+      "enum": [
+        "cero",
+        "eight",
+        "sixteen"
+      ]
+    }
+  }
+}

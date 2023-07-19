@@ -1,20 +1,22 @@
-'use strict';
+"use strict";
+
+const { uuid } = require("uuidv4");
 
 module.exports = {
-  /**
-   * An asynchronous register function that runs before
-   * your application is initialized.
-   *
-   * This gives you an opportunity to extend code.
-   */
-  register(/*{ strapi }*/) {},
+  register(/*{ strapi }*/) {
+    
+  },
 
-  /**
-   * An asynchronous bootstrap function that runs before
-   * your application gets started.
-   *
-   * This gives you an opportunity to set up your data model,
-   * run jobs, or perform some special logic.
-   */
-  bootstrap(/*{ strapi }*/) {},
+  bootstrap({ strapi }) {
+    strapi.db.lifecycles.subscribe({
+      models : [
+        "plugin::users-permissions.user",
+      ],
+      async beforeCreate( event ) {
+        const { data } = event.params;
+
+        data.uuid = uuid();
+      },
+    });
+  },
 };

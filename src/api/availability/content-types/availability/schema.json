@@ -1,0 +1,35 @@
+{
+  "kind": "collectionType",
+  "collectionName": "availabilities",
+  "info": {
+    "singularName": "availability",
+    "pluralName": "availabilities",
+    "displayName": "Availability",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "product": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::product.product"
+    },
+    "stock": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::stock.stock"
+    },
+    "quantity": {
+      "type": "decimal"
+    },
+    "uuid": {
+      "type": "string"
+    },
+    "batch": {
+      "type": "string"
+    }
+  }
+}

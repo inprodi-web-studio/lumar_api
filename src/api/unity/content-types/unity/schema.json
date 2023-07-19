@@ -1,0 +1,21 @@
+{
+  "kind": "collectionType",
+  "collectionName": "unities",
+  "info": {
+    "singularName": "unity",
+    "pluralName": "unities",
+    "displayName": "Unity"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uuid": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    }
+  }
+}

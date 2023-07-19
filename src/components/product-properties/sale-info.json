@@ -1,0 +1,21 @@
+{
+  "collectionName": "components_product_properties_sale_infos",
+  "info": {
+    "displayName": "saleInfo",
+    "icon": "attachment"
+  },
+  "options": {},
+  "attributes": {
+    "salePrice": {
+      "type": "decimal"
+    },
+    "iva": {
+      "type": "enumeration",
+      "enum": [
+        "cero",
+        "eight",
+        "sixteen"
+      ]
+    }
+  }
+}
