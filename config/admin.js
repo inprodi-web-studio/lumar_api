@@ -1,4 +1,5 @@
 module.exports = ({ env }) => ({
+  url : "/dashboard",
   auth: {
     secret: env('ADMIN_JWT_SECRET'),
   },

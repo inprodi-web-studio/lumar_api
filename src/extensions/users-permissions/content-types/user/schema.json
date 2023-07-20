@@ -76,6 +76,9 @@
     },
     "uuid": {
       "type": "string"
+    },
+    "isActive": {
+      "type": "boolean"
     }
   }
 }
