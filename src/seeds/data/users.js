@@ -19,7 +19,7 @@ const generateUsersData = () => {
             password  : "test123",
             confirmed : faker.datatype.boolean(0.75),
             blocked   : false,
-            role      : faker.helpers.arrayElement([1,3,4]),
+            role      : 1,
             name      : faker.person.firstName(),
             lastName  : faker.person.lastName(),
             isActive  : faker.datatype.boolean(0.8),
