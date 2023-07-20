@@ -6,7 +6,6 @@ module.exports = [
   "strapi::query",
   "strapi::body",
   "strapi::session",
-  "strapi::public",
   "global::errors",
   {
     name   : "strapi::poweredBy",
@@ -18,6 +17,13 @@ module.exports = [
     name   : "strapi::favicon",
     config : {
       path : "./public/inprodi_favicon.png",
+    },
+  },
+  {
+    name    : "strapi::public",
+    config  : {
+      defer        : true,
+      defaultIndex : "./public/index.html",
     },
   },
 ];
