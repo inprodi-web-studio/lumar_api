@@ -1,4 +1,4 @@
-const { USER_MODEL }    = require("../constants");
+const { USER_MODEL }    = require("../constants/models");
 const generateUsersData = require("./data/users");
 
 const generateUsers = async ( strapi ) => {

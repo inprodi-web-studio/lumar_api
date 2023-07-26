@@ -1,8 +1,7 @@
 const { getAbsoluteServerUrl } = require("@strapi/utils/lib/");
 
-const forgotPasswordTemplate = `
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-   <head>
+const invitationTemplate = `
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head>
       <!--[if gte mso 9]>
       <xml>
          <o:OfficeDocumentSettings>
@@ -61,7 +60,7 @@ const forgotPasswordTemplate = `
                                        <tbody>
                                           <tr>
                                              <td style="overflow-wrap:break-word;word-break:break-word;padding:0px;font-family:'Montserrat',sans-serif;" align="left">
-                                                <h1 style="margin: 0px;color: 4F4CB6;line-height: 150%;text-align: center;word-wrap: break-word;font-size: 22px;font-weight: 700;"> Restablecer Contraseña</h1>
+                                                <h1 style="margin: 0px;color: #4F4CB6;line-height: 150%;text-align: center;word-wrap: break-word;font-size: 22px;font-weight: 700;">Acepta la Invitación a Lumar</h1>
                                              </td>
                                           </tr>
                                        </tbody>
@@ -71,7 +70,7 @@ const forgotPasswordTemplate = `
                                           <tr>
                                              <td style="overflow-wrap:break-word;word-break:break-word;padding:0px;font-family:'Montserrat',sans-serif;" align="left">
                                                 <div style="font-size: 14px;color: #231F20;line-height: 150%;text-align: center;word-wrap: break-word;">
-                                                   <p style="line-height: 150%;">Ingresa el código a continuación en la aplicación para que valides tu identidad y puedas restablecer tu contraseña:</p>
+                                                   <p style="line-height: 150%;"><%=invitedBy%> te está invitando a que te registres como usuario de la plataforma administrativa de Lumar. Si deseas aceptar su invitación haz click a continuación:</p>
                                                 </div>
                                              </td>
                                           </tr>
@@ -81,7 +80,7 @@ const forgotPasswordTemplate = `
                                        <tbody>
                                           <tr>
                                              <td style="overflow-wrap:break-word;word-break:break-word;padding:20px 0px;font-family:'Montserrat',sans-serif;" align="left">
-                                                <h1 style="margin: 0px; line-height: 150%; text-align: center; word-wrap: break-word; font-family: andale mono,times; font-size: 30px; font-weight: 700; letter-spacing: 20px"> &lt;%=code %&gt;</h1>
+                                                <a href="${ process.env.APP_URL }/auth/register?token=<%=invitationUuid%>" style="display: block;width: 100%;border: none;border-radius: 4px;background-color: #4F4CB6;color: white;font-family: inherit;font-size: 14px;font-weight: 600;text-align: center;text-decoration: none;padding: 9px 0;">Crear mi Cuenta</a>
                                              </td>
                                           </tr>
                                        </tbody>
@@ -91,7 +90,19 @@ const forgotPasswordTemplate = `
                                           <tr>
                                              <td style="overflow-wrap:break-word;word-break:break-word;padding:0px;font-family:'Montserrat',sans-serif;" align="left">
                                                 <div style="font-size: 14px;color: #231F20;line-height: 150%;text-align: center;word-wrap: break-word;">
-                                                   <p style="line-height: 150%;">Si tu no solicitaste hacer un cambio de contraseña de tu cuenta puedes ignorar este correo.</p>
+                                                   <p style="line-height: 150%;">Únicamente tendrás que verificar y completar tus datos para poder comenzar.</p>
+                                                </div>
+                                             </td>
+                                          </tr>
+                                       </tbody>
+                                    </table>
+
+                                    <table style="font-family:'Montserrat',sans-serif;margin-top: 20px;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
+                                       <tbody>
+                                          <tr>
+                                             <td style="overflow-wrap:break-word;word-break:break-word;padding:0px;font-family:'Montserrat',sans-serif;" align="left">
+                                                <div style="font-size: 12px;color: #231F20;line-height: 150%;text-align: center;word-wrap: break-word;">
+                                                   <p style="line-height: 150%;">Si desconoces el origen de este correo, por favor ignóralo.</p>
                                                 </div>
                                              </td>
                                           </tr>
@@ -107,8 +118,8 @@ const forgotPasswordTemplate = `
             </tr>
          </tbody>
       </table>
-   </body>
-</html>
+   
+</body></html>
 `;
 
-module.exports = forgotPasswordTemplate;
+module.exports = invitationTemplate;

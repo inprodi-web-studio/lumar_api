@@ -1,12 +1,15 @@
 const {
     USER_MODEL,
-} = require("../constants");
+    INVITATION_MODEL,
+} = require("../constants/models");
 
 const generateUsers = require("./user");
+const generateInvitations = require("./invitation");
 
 const clearData = async ( strapi ) => {
     const collectionTypeUids = [
         USER_MODEL,
+        INVITATION_MODEL,
     ];
 
     for ( const collectionTypeUid of collectionTypeUids ) {
@@ -29,6 +32,7 @@ const generateSeedData = async ( strapi ) => {
     console.log( "generating seed data..." );
 
     await generateUsers( strapi );
+    await generateInvitations( strapi );
 
     console.log( "generating seed data has been finished successfully!" );
 

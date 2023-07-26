@@ -14,7 +14,7 @@ const {
     UnauthorizedError,
 } = require("../../../helpers/errors");
 
-const { USER_MODEL }         = require("../../../constants");
+const { USER_MODEL }         = require("../../../constants/models");
 const generateRandomCode     = require("../../../helpers/generateRandomCode");
 const forgotPasswordTemplate = require("../../../templates/forgotPassword");
 
@@ -68,12 +68,15 @@ module.exports = ( plugin ) => {
 
         return {
             token    : getService("jwt").issue({ id : user.id }),
-            id       : user.id,
-            uuid     : user.uuid, 
-            name     : user.name,
-            lastName : user.lastName,
-            email    : user.email,
-            role     : user.role.name,
+            user     : {
+                id       : user.id,
+                uuid     : user.uuid,
+                name     : user.name,
+                lastName : user.lastName,
+                email    : user.email,
+                role     : user.role.name,
+                isActive : user.isActive,
+            },
         };
     };
 

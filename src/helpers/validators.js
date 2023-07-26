@@ -14,26 +14,6 @@ const validateYupSchema = ( schema, options = {} ) => async ( body, errorMessage
     }
 };
 
-// yup.setLocale({
-//     mixed: {
-//       notType({ path, type, value, originalValue }) {
-//         const isCast = originalValue != null && originalValue !== value;
-//         const msg =
-//           `${path} must be a \`${type}\` type, ` +
-//           `but the final value was: \`${printValue(value, true)}\`${
-//             isCast ? ` (cast from the value \`${printValue(originalValue, true)}\`).` : '.'
-//           }`;
-  
-//         /* Remove comment that is not supposed to be seen by the enduser
-//         if (value === null) {
-//           msg += `\n If "null" is intended as an empty value be sure to mark the schema as \`.nullable()\``;
-//         }
-//         */
-//         return msg;
-//       },
-//     },
-// });
-
 module.exports = {
     yup,
     validateYupSchema,
