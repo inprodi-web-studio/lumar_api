@@ -81,7 +81,7 @@ const forgotPasswordTemplate = `
                                        <tbody>
                                           <tr>
                                              <td style="overflow-wrap:break-word;word-break:break-word;padding:20px 0px;font-family:'Montserrat',sans-serif;" align="left">
-                                                <h1 style="margin: 0px; line-height: 150%; text-align: center; word-wrap: break-word; font-family: andale mono,times; font-size: 30px; font-weight: 700; letter-spacing: 20px"> &lt;%=code %&gt;</h1>
+                                                <h1 style="margin: 0px; line-height: 150%; text-align: center; word-wrap: break-word; font-family: andale mono,times; font-size: 30px; font-weight: 700; letter-spacing: 20px"> <%=code%></h1>
                                              </td>
                                           </tr>
                                        </tbody>

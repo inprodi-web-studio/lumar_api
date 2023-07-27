@@ -4,7 +4,8 @@
   "info": {
     "singularName": "warehouse",
     "pluralName": "warehouses",
-    "displayName": "Warehouse"
+    "displayName": "Warehouse",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -17,13 +18,6 @@
     "name": {
       "type": "string"
     },
-    "type": {
-      "type": "enumeration",
-      "enum": [
-        "direct",
-        "indirect"
-      ]
-    },
     "address": {
       "displayName": "Address",
       "type": "component",
@@ -32,9 +26,9 @@
     },
     "stocks": {
       "type": "relation",
-      "relation": "oneToMany",
+      "relation": "manyToMany",
       "target": "api::stock.stock",
-      "mappedBy": "warehouse"
+      "mappedBy": "warehouses"
     }
   }
 }

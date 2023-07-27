@@ -4,7 +4,8 @@
   "info": {
     "singularName": "stock",
     "pluralName": "stocks",
-    "displayName": "Stock"
+    "displayName": "Stock",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -17,11 +18,14 @@
     "name": {
       "type": "string"
     },
-    "warehouse": {
+    "warehouses": {
       "type": "relation",
-      "relation": "manyToOne",
+      "relation": "manyToMany",
       "target": "api::warehouse.warehouse",
       "inversedBy": "stocks"
+    },
+    "description": {
+      "type": "text"
     }
   }
 }
