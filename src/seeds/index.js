@@ -4,18 +4,24 @@ const {
     CATEGORY_MODEL,
     WAREHOUSE_MODEL,
     INVITATION_MODEL,
+    UNITY_MODEL,
+    TAG_MODEL,
 } = require("../constants/models");
 
 const generateUsers       = require("./user");
 const generateStocks      = require("./stock");
 const generateWarehouses  = require("./warehouse");
 const generateInvitations = require("./invitation");
-const generateCategories = require("./category");
+const generateCategories  = require("./category");
+const generateUnities     = require("./unity");
+const generatetags = require("./tag");
 
 const clearData = async ( strapi ) => {
     const collectionTypeUids = [
+        TAG_MODEL,
         USER_MODEL,
         STOCK_MODEL,
+        UNITY_MODEL,
         CATEGORY_MODEL,
         WAREHOUSE_MODEL,
         INVITATION_MODEL,
@@ -45,6 +51,8 @@ const generateSeedData = async ( strapi ) => {
     await generateWarehouses( strapi );
     await generateStocks( strapi );
     await generateCategories( strapi );
+    await generateUnities( strapi );
+    await generatetags( strapi );
 
     console.log( "generating seed data has been finished successfully!" );
 

@@ -1,16 +1,16 @@
 "use strict";
 
-const { UNITY_MODEL }   = require("../../../constants/models");
+const { TAG_MODEL } = require("../../../constants/models");
 const { ConflictError } = require("../../../helpers/errors");
 
 const { createCoreService } = require("@strapi/strapi").factories;
 
-module.exports = createCoreService( UNITY_MODEL, ({ strapi }) => ({
+module.exports = createCoreService( TAG_MODEL, ({ strapi }) => ({
     async checkForDuplicates( name ) {
         const ctx    = strapi.requestContext.get();
         const method = ctx.request.method;
 
-        const conflictingUnities = await strapi.query( UNITY_MODEL ).count({
+        const conflictingUnities = await strapi.query( TAG_MODEL ).count({
             where : {
                 name,
                 ...( method === "PUT" && {
@@ -27,9 +27,9 @@ module.exports = createCoreService( UNITY_MODEL, ({ strapi }) => ({
                 nameCode : "ER_DUP_ENTRY",
                 description : {
                     value   : name,
-                    message : "There is already a unity with this name",
+                    message : "There is already a tag with this name",
                 },
-            }, { key : "unity.duplicatedName", path : ctx.request.path });
+            }, { key : "tag.duplicatedName", path : ctx.request.path });
         }
     },
 }));

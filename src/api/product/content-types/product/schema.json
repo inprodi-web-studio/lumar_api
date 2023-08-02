@@ -4,7 +4,7 @@
   "info": {
     "singularName": "product",
     "pluralName": "products",
-    "displayName": "product",
+    "displayName": "Product",
     "description": ""
   },
   "options": {
@@ -26,19 +26,15 @@
     },
     "unity": {
       "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::unity.unity"
+      "relation": "manyToOne",
+      "target": "api::unity.unity",
+      "inversedBy": "products"
     },
     "categories": {
       "type": "relation",
       "relation": "manyToMany",
       "target": "api::category.category",
       "inversedBy": "products"
-    },
-    "group": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::group.group"
     },
     "expirationDays": {
       "type": "integer"
@@ -77,6 +73,12 @@
       "allowedTypes": [
         "images"
       ]
+    },
+    "tags": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::tag.tag",
+      "inversedBy": "products"
     }
   }
 }
