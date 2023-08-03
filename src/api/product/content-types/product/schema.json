@@ -36,9 +36,6 @@
       "target": "api::category.category",
       "inversedBy": "products"
     },
-    "expirationDays": {
-      "type": "integer"
-    },
     "type": {
       "type": "enumeration",
       "enum": [
@@ -46,9 +43,6 @@
         "sp",
         "pt"
       ]
-    },
-    "isSalable": {
-      "type": "boolean"
     },
     "saleInfo": {
       "displayName": "saleInfo",
@@ -79,6 +73,12 @@
       "relation": "manyToMany",
       "target": "api::tag.tag",
       "inversedBy": "products"
+    },
+    "inventoryInfo": {
+      "displayName": "Inventory Info",
+      "type": "component",
+      "repeatable": false,
+      "component": "product-properties.inventory-info"
     }
   }
 }
