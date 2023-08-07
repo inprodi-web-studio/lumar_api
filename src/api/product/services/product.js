@@ -6,7 +6,7 @@ const {
     CATEGORY_MODEL,
 } = require("../../../constants/models");
 
-const { ConflictError } = require("../../../helpers/errors");
+const { ConflictError, BadRequestError } = require("../../../helpers/errors");
 
 const findOne = require("../../../helpers/findOne");
 
@@ -82,5 +82,43 @@ module.exports = createCoreService( PRODUCT_MODEL, ({ strapi }) => ({
         }
 
         return tagsIds;
+    },
+
+    async validateMaterials( products = [] ) {
+        const ctx    = strapi.requestContext.get();
+        const method = ctx.request.method;
+        let productsIds = [];
+
+        for ( const { product } of products ) {
+            const productObject = await findOne( product, PRODUCT_MODEL );
+            const hasDuplicates = products.filter( p => p.product === product ).length > 1;
+
+            if ( hasDuplicates ) {
+                throw new ConflictError({
+                    code : 1062,
+                    nameCode : "ER_DUP_ENTRY",
+                    description : {
+                        value   : product,
+                        message : "There can not be the same product in the material list",
+                    },
+                });
+            }
+
+            if ( !productObject.isActive ) {
+                throw new BadRequestError( "An inactive product can't be part of a list of materials", {
+                    key  : "product.inactiveInBom",
+                    path : ctx.request.path,
+                });
+            }
+
+            if ( method === "PUT" && product === ctx.params.id ) {
+                throw new BadRequestError( "A product can't be part of his own list of materials", {
+                    key  : "product.selfInBom",
+                    path : ctx.request.path,
+                });
+            }
+
+            productsIds.push( productObject.id );
+        }
     },
 }));

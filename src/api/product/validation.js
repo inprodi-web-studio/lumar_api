@@ -22,6 +22,10 @@ const addProductSchema = yup.object().shape({
         expirationDays : yup.number().nullable(),
         alertQuantity  : yup.number().nullable(),
     }).noUnknown().strict(),
+    materials : yup.array().of(yup.object().shape({
+        product  : yup.string().required("Product is required"),
+        quantity : yup.number().required("Quantity is required"),
+    })),
 }).noUnknown().strict();
 
 module.exports = {

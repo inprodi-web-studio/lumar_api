@@ -79,6 +79,9 @@
       "type": "component",
       "repeatable": false,
       "component": "product-properties.inventory-info"
+    },
+    "materials": {
+      "type": "json"
     }
   }
 }
