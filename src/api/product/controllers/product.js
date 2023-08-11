@@ -75,7 +75,7 @@ module.exports = createCoreController( PRODUCT_MODEL, ({ strapi }) => ({
         const categories = await strapi.service( PRODUCT_MODEL ).validateCategories( data.categories );
         const unity      = await findOne( data.unity, UNITY_MODEL );
         const tags       = await strapi.service( PRODUCT_MODEL ).validateTags( data.tags );
-        await strapi.service( PRODUCT_MODEL ).validateMaterials( data.materials );
+        const materials  = await strapi.service( PRODUCT_MODEL ).validateMaterials( data.materials );
 
         await strapi.service( PRODUCT_MODEL ).checkForDuplicates( data.sku, data.name );
 
@@ -84,6 +84,7 @@ module.exports = createCoreController( PRODUCT_MODEL, ({ strapi }) => ({
                 ...data,
                 tags,
                 categories,
+                materials,
                 unity    : unity.id,
                 isActive : true,
             },

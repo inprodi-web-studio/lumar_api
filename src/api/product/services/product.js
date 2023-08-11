@@ -87,9 +87,10 @@ module.exports = createCoreService( PRODUCT_MODEL, ({ strapi }) => ({
     async validateMaterials( products = [] ) {
         const ctx    = strapi.requestContext.get();
         const method = ctx.request.method;
-        let productsIds = [];
 
-        for ( const { product } of products ) {
+        let materials = [];
+
+        for ( const { product, quantity } of products ) {
             const productObject = await findOne( product, PRODUCT_MODEL );
             const hasDuplicates = products.filter( p => p.product === product ).length > 1;
 
@@ -118,7 +119,13 @@ module.exports = createCoreService( PRODUCT_MODEL, ({ strapi }) => ({
                 });
             }
 
-            productsIds.push( productObject.id );
+            materials.push({
+                uuid     : product,
+                name     : productObject.name,
+                quantity : quantity,
+            });
         }
+
+        return materials;
     },
 }));
