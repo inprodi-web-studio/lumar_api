@@ -6,7 +6,9 @@ const { validateAddProduct } = require("../validation");
 
 const findMany = require("../../../helpers/findMany");
 const findOne  = require("../../../helpers/findOne");
-const { BadRequestError } = require("../../../helpers/errors");
+const { BadRequestError, UnprocessableContentError } = require("../../../helpers/errors");
+
+const { getService } = require("@strapi/plugin-upload/server/utils");
 
 const { createCoreController } = require("@strapi/strapi").factories;
 
@@ -53,19 +55,60 @@ module.exports = createCoreController( PRODUCT_MODEL, ({ strapi }) => ({
         return product;
     },
 
+    async uploadImage( ctx ) {
+        const image = ctx.request.files.image;
+
+        if ( !image ) {
+            throw new UnprocessableContentError(["Image is required"]);
+        }
+
+        const uploadedImage = await strapi.plugins.upload.services.upload.upload({
+            files : image,
+            data  : {
+                fileInfo : {
+                    folder : 2,
+                },
+            },
+        });
+
+        return {
+            id   : uploadedImage[0].id,
+            name : uploadedImage[0].name,
+            url  : uploadedImage[0].url,
+        };
+    },
+
+    async deleteImage( ctx ) {
+        const { id } = ctx.request.params;
+
+        const file = await strapi.service( PRODUCT_MODEL ).validateImage( id );
+
+        const deletedImage = await getService("upload").remove( file );
+
+        return {
+            id   : deletedImage.id,
+            name : deletedImage.name,
+            url  : deletedImage.url,
+        };
+    },
+
     async create( ctx ) {
         const data = ctx.request.body;
 
         await validateAddProduct( data );
 
-        if ( data.type === "mp" && data.materials.length > 0 ) {
+        if ( data.image ) {
+            await strapi.service( PRODUCT_MODEL ).validateImage( data.image );
+        }
+
+        if ( data.type === "mp" && data.materials?.length > 0 ) {
             throw new BadRequestError( "mp products cannot have materials", {
                 key  : "product.mpWithMaterials",
                 path : ctx.request.path,
             });
         }
 
-        if ( data.type !== "mp" && data.materials.length <= 0 ) {
+        if ( data.type !== "mp" && data.materials?.length <= 0 ) {
             throw new BadRequestError( "Products that are not mp must have at least one material specified", {
                 key  : "product.noMaterials",
                 path : ctx.request.path,
@@ -177,5 +220,20 @@ module.exports = createCoreController( PRODUCT_MODEL, ({ strapi }) => ({
         });
 
         return deletedProduct;
+    },
+
+    async getBom( ctx ) {
+        const { uuid } = ctx.params;
+
+        const product = await findOne( uuid, PRODUCT_MODEL, productFields );
+
+        let bomData = {
+            uuid       : product.uuid,
+            name       : product.name,
+            quantity   : product.quantity,
+            materials  : await strapi.service( PRODUCT_MODEL ).generateBom( product.uuid ),
+        };
+
+        return bomData;
     },
 }));

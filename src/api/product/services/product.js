@@ -6,7 +6,9 @@ const {
     CATEGORY_MODEL,
 } = require("../../../constants/models");
 
-const { ConflictError, BadRequestError } = require("../../../helpers/errors");
+const { ConflictError, BadRequestError, NotFoundError } = require("../../../helpers/errors");
+
+const { getService } = require("@strapi/plugin-upload/server/utils");
 
 const findOne = require("../../../helpers/findOne");
 
@@ -58,6 +60,20 @@ module.exports = createCoreService( PRODUCT_MODEL, ({ strapi }) => ({
                 });
             }
         }
+    },
+
+    async validateImage( imageId ) {
+        const ctx  = strapi.requestContext.get();
+        const file = await getService("upload").findOne( imageId );
+
+        if ( !file ) {
+            throw new NotFoundError( "Image not found", {
+                key  : "upload.imageNotFound",
+                path : ctx.request.url,
+            });
+        }
+
+        return file;
     },
 
     async validateCategories( categories = [] ) {
@@ -127,5 +143,26 @@ module.exports = createCoreService( PRODUCT_MODEL, ({ strapi }) => ({
         }
 
         return materials;
+    },
+    
+    async generateBom( productUuid ) {
+        let materials = [];
+
+        const product = await findOne( productUuid, PRODUCT_MODEL, {
+            fields : "*",
+        });
+
+        if ( product.materials?.length > 0 ) {
+            for ( const material of product.materials ) {
+                materials.push({
+                    uuid      : material.uuid,
+                    name      : material.name,
+                    quantity  : material.quantity,
+                    materials : await strapi.service( PRODUCT_MODEL ).generateBom( material.uuid ),
+                });
+            }
+
+            return materials;
+        }
     },
 }));

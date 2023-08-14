@@ -4,6 +4,7 @@ const { yup, validateYupSchema } = validators;
 const addProductSchema = yup.object().shape({
     sku         : yup.string().required("SKU is required"),
     name        : yup.string().required("Name is required"),
+    image       : yup.number(),
     description : yup.string(),
     type        : yup.string().oneOf(["mp", "sp", "pt"]).required("Type is required"),
     categories  : yup.array().of(yup.string()).min(1, "At least one category is required"),
