@@ -56,7 +56,7 @@ module.exports = createCoreController( PRODUCT_MODEL, ({ strapi }) => ({
     },
 
     async uploadImage( ctx ) {
-        const image = ctx.request.files.image;
+        const image = ctx.request.files?.image;
 
         if ( !image ) {
             throw new UnprocessableContentError(["Image is required"]);
