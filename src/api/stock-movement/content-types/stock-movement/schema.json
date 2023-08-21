@@ -1,0 +1,61 @@
+{
+  "kind": "collectionType",
+  "collectionName": "stock_movements",
+  "info": {
+    "singularName": "stock-movement",
+    "pluralName": "stock-movements",
+    "displayName": "Stock Movement"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uuid": {
+      "type": "string"
+    },
+    "movementType": {
+      "type": "enumeration",
+      "enum": [
+        "entrance",
+        "exit",
+        "transfer",
+        "adjust"
+      ]
+    },
+    "warehouse": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::warehouse.warehouse"
+    },
+    "stock": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::stock.stock"
+    },
+    "product": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::product.product"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "deal",
+        "warranty",
+        "return"
+      ]
+    },
+    "price": {
+      "type": "decimal"
+    },
+    "batch": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::batch.batch"
+    },
+    "quantity": {
+      "type": "float"
+    }
+  }
+}

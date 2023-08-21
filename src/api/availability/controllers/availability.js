@@ -1,9 +1,81 @@
-'use strict';
+"use strict";
 
-/**
- * availability controller
- */
+const {
+    STOCK_MODEL,
+    PRODUCT_MODEL,
+    WAREHOUSE_MODEL,
+    AVAILABILITY_MODEL,
+} = require("../../../constants/models");
+const { BadRequestError } = require("../../../helpers/errors");
 
-const { createCoreController } = require('@strapi/strapi').factories;
+const findMany = require("../../../helpers/findMany");
+const findOne  = require("../../../helpers/findOne");
 
-module.exports = createCoreController('api::availability.availability');
+const { createCoreController } = require("@strapi/strapi").factories;
+
+const productFields = {
+    fields : ["uuid", "sku", "name"],
+    populate : {
+        unity : {
+            fields : ["uuid", "name"],
+        },
+        purchaseInfo : true,
+        saleInfo     : true,
+    },
+}
+
+module.exports = createCoreController( AVAILABILITY_MODEL, ({ strapi }) => ({
+    async find( ctx ) {
+        const { uuid } = ctx.params;
+
+        const filters = {
+            $search : ["name", "sku"],
+            batches : {
+                availabilities : {
+                    quantity : {
+                        $not : 0,
+                    },
+                },
+            },
+        };
+
+        const warehouse = await findOne( uuid, WAREHOUSE_MODEL );
+
+        const stocks = await findMany( STOCK_MODEL, {
+            fields  : ["uuid", "name"],
+            filters : {
+                warehouses : warehouse.id,
+            },
+        });
+
+        const products = await findMany( PRODUCT_MODEL, productFields, filters );
+
+        await strapi.service( AVAILABILITY_MODEL ).addMultipleAvailabilities( products.data, stocks.data );
+
+        return products;
+    },
+
+    async findOne( ctx ) {
+        const {
+            warehouseUuid,
+            productUuid,
+         } = ctx.params;
+
+         const stockUuid = ctx.request.query.stock;
+
+         if ( !stockUuid ) {
+            throw new BadRequestError( "You have to specify the stock as a query param", {
+                key  : "availability.missingQueryParam",
+                path : ctx.request.path,
+            });
+         }
+
+         const stock     = await findOne( stockUuid, STOCK_MODEL );
+         const warehouse = await findOne( warehouseUuid, WAREHOUSE_MODEL );
+         const product   = await findOne( productUuid, PRODUCT_MODEL, productFields);
+
+         await strapi.service( AVAILABILITY_MODEL ).addSingleAvailabilities( product, stock );
+
+         return product;
+    },
+}));

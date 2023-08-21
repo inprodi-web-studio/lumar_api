@@ -1,33 +1,39 @@
 const {
+    TAG_MODEL,
     USER_MODEL,
+    UNITY_MODEL,
     STOCK_MODEL,
+    PRODUCT_MODEL,
     CATEGORY_MODEL,
     WAREHOUSE_MODEL,
     INVITATION_MODEL,
-    UNITY_MODEL,
-    TAG_MODEL,
-    PRODUCT_MODEL,
+    AVAILABILITY_MODEL,
+    BATCH_MODEL,
 } = require("../constants/models");
 
-const generateUsers       = require("./user");
-const generateStocks      = require("./stock");
-const generateWarehouses  = require("./warehouse");
-const generateInvitations = require("./invitation");
-const generateCategories  = require("./category");
-const generateUnities     = require("./unity");
-const generatetags = require("./tag");
-const generateProducts = require("./product");
+const generateUsers          = require("./user");
+const generateStocks         = require("./stock");
+const generateWarehouses     = require("./warehouse");
+const generateInvitations    = require("./invitation");
+const generateCategories     = require("./category");
+const generateUnities        = require("./unity");
+const generatetags           = require("./tag");
+const generateProducts       = require("./product");
+const generateAvailabilities = require("./availability");
+const generateBatches = require("./batch");
 
 const clearData = async ( strapi ) => {
     const collectionTypeUids = [
         TAG_MODEL,
         USER_MODEL,
-        STOCK_MODEL,
         UNITY_MODEL,
+        BATCH_MODEL,
+        STOCK_MODEL,
         PRODUCT_MODEL,
         CATEGORY_MODEL,
         WAREHOUSE_MODEL,
         INVITATION_MODEL,
+        AVAILABILITY_MODEL,
     ];
 
     for ( const collectionTypeUid of collectionTypeUids ) {
@@ -57,6 +63,8 @@ const generateSeedData = async ( strapi ) => {
     await generateUnities( strapi );
     await generatetags( strapi );
     await generateProducts( strapi );
+    await generateBatches( strapi );
+    await generateAvailabilities( strapi );
 
     console.log( "generating seed data has been finished successfully!" );
 
