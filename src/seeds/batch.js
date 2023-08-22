@@ -10,7 +10,11 @@ const generateBatches = async ( strapi ) => {
 
     const batchesData = generateBatchesData();
 
-    const product = await strapi.query( PRODUCT_MODEL ).findOne();
+    const product = await strapi.query( PRODUCT_MODEL ).findOne({
+        where : {
+            sku : "0987654321"
+        },
+    });
 
     for ( const batch of batchesData ) {
         await strapi.entityService.create( BATCH_MODEL, {

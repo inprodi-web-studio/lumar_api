@@ -20,7 +20,7 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
                     select : ["uuid", "quantity"],
                     populate : {
                         batch : {
-                            select : ["uuid", "name"],
+                            select : ["uuid", "name", "expirationDay"],
                         },
                     },
                 });
@@ -59,7 +59,7 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
             select : ["uuid", "quantity"],
             populate : {
                 batch : {
-                    select : ["uuid", "name"],
+                    select : ["uuid", "name", "expirationDay"],
                 },
             },
         });

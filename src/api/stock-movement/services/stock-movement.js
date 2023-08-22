@@ -29,7 +29,8 @@ const availabilityFields = {
 
 module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
     async validateConfiguration( data, warehouse, product, stock ) {
-        const ctx = strapi.requestContext.get();
+        const ctx      = strapi.requestContext.get();
+        const movement = ctx.request.path.replace("/api/stock-movements/", "");
 
         if ( !stock.warehouses.find( x => x.uuid === warehouse.uuid ) ) {
             throw new BadRequestError( `Stock with the uuid ${ stock.uuid } is not assign to the warehouse with the uuid ${ warehouse.uuid }`, {
@@ -38,11 +39,21 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             });
         }
 
-        if ( !product.isActive ) {
-            throw new BadRequestError( "You cannot make an entrance of a inactive product", {
-                key  : "stock-movement.inactiveProduct",
-                path : ctx.request.path,
-            });
+        if ( movement === "entrance" ) {
+            if ( !product.isActive ) {
+                throw new BadRequestError( "You cannot make an entrance of a inactive product", {
+                    key  : "stock-movement.inactiveProduct",
+                    path : ctx.request.path,
+                });
+            }
+
+            if ( product.inventoryInfo.expirationDays && !data.expirationDay ) {
+                throw new UnprocessableContentError( ["Expiration day is required beacuse the product has being configured to manage expiration"] );
+            }
+    
+            if ( !product.inventoryInfo.expirationDays && data.expirationDay ) {
+                throw new UnprocessableContentError( ["Expiration day is not required beacuse the product has being configured to dont manage expiration"] );
+            }
         }
 
         if ( product.inventoryInfo.manageBatches && !data.batch ) {
@@ -51,14 +62,6 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         if ( !product.inventoryInfo.manageBatches && data.batch ) {
             throw new UnprocessableContentError( ["Batch is not required because the product has being configured to dont manage batches"] );
-        }
-
-        if ( product.inventoryInfo.expirationDays && !data.expirationDay ) {
-            throw new UnprocessableContentError( ["Expiration day is required beacuse the product has being configured to manage expiration"] );
-        }
-
-        if ( !product.inventoryInfo.expirationDays && data.expirationDay ) {
-            throw new UnprocessableContentError( ["Expiration day is not required beacuse the product has being configured to dont manage expiration"] );
         }
     },
 
@@ -163,5 +166,100 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
             return newAvailability;
         }
+    },
+
+    async handleNoBatchExitCreation( data, warehouse, product, stock ) {
+        const ctx = strapi.requestContext.get();
+
+        const availability = await strapi.query( AVAILABILITY_MODEL ).findOne({
+            where : {
+                stock     : stock.id,
+                warehouse : warehouse.id,
+                product   : product.id,
+            },
+        });
+
+        if ( !availability ) {
+            throw new BadRequestError( "There is no availability for this product", {
+                key  : "stock-movement.noAvailability",
+                path : ctx.request.path,
+            });
+        }
+
+        if ( availability.quantity < data.quantity ) {
+            throw new BadRequestError( "There is not enough quantity for this product", {
+                key  : "stock-movement.notEnoughQuantity",
+                path : ctx.request.path,
+            });
+        }
+
+        const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
+            data : {
+                quantity : availability.quantity - data.quantity,
+            },
+            fields   : availabilityFields.fields,
+            populate : availabilityFields.populate,
+        });
+
+        if ( updatedAvailability.quantity === 0 ) {
+            await strapi.entityService.delete( AVAILABILITY_MODEL, updatedAvailability.id );
+        }
+
+        return updatedAvailability;
+    },
+
+    async handleBatchExitCreation( data, warehouse, product, stock ) {
+        const ctx = strapi.requestContext.get();
+
+        const batch = await strapi.query( BATCH_MODEL ).findOne({
+            where : {
+                uuid    : data.batch,
+                product : product.id,
+            },
+        });
+
+        if ( !batch ) {
+            throw new BadRequestError( `Batch with uuid ${ data.batch } not found`, {
+                key  : "stock-movement.batchNotFound",
+                path : ctx.request.path,
+            });
+        }
+
+        const availability = await strapi.query( AVAILABILITY_MODEL ).findOne({
+            where : {
+                stock     : stock.id,
+                batch     : batch.id,
+                warehouse : warehouse.id,
+                product   : product.id,
+            },
+        });
+
+        if ( !availability ) {
+            throw new BadRequestError( "There is no availability for this product", {
+                key  : "stock-movement.noAvailability",
+                path : ctx.request.path,
+            });
+        }
+
+        if ( availability.quantity < data.quantity ) {
+            throw new BadRequestError( "There is not enough quantity for this product", {
+                key  : "stock-movement.notEnoughQuantity",
+                path : ctx.request.path,
+            });
+        }
+
+        const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
+            data : {
+                quantity : availability.quantity - data.quantity,
+            },
+            fields   : availabilityFields.fields,
+            populate : availabilityFields.populate,
+        });
+
+        if ( updatedAvailability.quantity === 0 ) {
+            await strapi.entityService.delete( AVAILABILITY_MODEL, updatedAvailability.id );
+        }
+
+        return updatedAvailability;
     },
 }));
