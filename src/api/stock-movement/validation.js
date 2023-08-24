@@ -40,8 +40,27 @@ const addTransferSchema = yup.object().shape({
     quantity      : yup.number().required("Quantity is required"),
 }).noUnknown().strict();
 
+const addAdjustmentSchema = yup.object().shape({
+    warehouse     : yup.string().required("Warehouse is required"),
+    stock         : yup.string().required("Stock is required"),
+    product       : yup.string().required("Product is required"),
+    batch         : yup.string(),
+    motive        : yup.string().required("Motive is required"),
+    quantity      : yup.number().required("Quantity is required").not([0], "Can't make an adjustment of 0"),
+    expirationDay : yup.string().test( "validateAdjustmentQuantity", "Expiration date is not expected if adjustment is negative", (value, context) => {
+        const quantity = context.options.from[0].value.quantity;
+
+        if ( value && quantity < 0 ) {
+            return false;
+        }
+
+        return true;
+    }),
+}).noUnknown().strict();
+
 module.exports = {
-    validateAddEntrance : validateYupSchema( addEntranceSchema ),
-    validateAddExit     : validateYupSchema( addExitSchema ),
-    validateAddTransfer : validateYupSchema( addTransferSchema ),
+    validateAddEntrance   : validateYupSchema( addEntranceSchema ),
+    validateAddExit       : validateYupSchema( addExitSchema ),
+    validateAddTransfer   : validateYupSchema( addTransferSchema ),
+    validateAddAdjustment : validateYupSchema( addAdjustmentSchema ),
 };

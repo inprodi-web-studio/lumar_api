@@ -30,13 +30,24 @@ module.exports = createCoreController( AVAILABILITY_MODEL, ({ strapi }) => ({
 
         const filters = {
             $search : ["name", "sku"],
-            batches : {
-                availabilities : {
-                    quantity : {
-                        $not : 0,
+            $or     : [
+                {
+                    batches : {
+                        availabilities : {
+                            quantity : {
+                                $not : 0,
+                            },
+                        },
                     },
                 },
-            },
+                {
+                    availabilities : {
+                        quantity : {
+                            $not : 0,
+                        },
+                    },
+                },
+            ],
         };
 
         const warehouse = await findOne( uuid, WAREHOUSE_MODEL );
@@ -50,9 +61,7 @@ module.exports = createCoreController( AVAILABILITY_MODEL, ({ strapi }) => ({
 
         const products = await findMany( PRODUCT_MODEL, productFields, filters );
 
-        await strapi.service( AVAILABILITY_MODEL ).addMultipleAvailabilities( products.data, stocks.data );
-
-        return products;
+        return await strapi.service( AVAILABILITY_MODEL ).addMultipleAvailabilities( products.data, stocks.data, warehouse );
     },
 
     async findOne( ctx ) {

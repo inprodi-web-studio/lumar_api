@@ -5,17 +5,32 @@ const { AVAILABILITY_MODEL } = require("../../../constants/models");
 const { createCoreService } = require("@strapi/strapi").factories;
 
 module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
-    async addMultipleAvailabilities( products, stocks ) {
-        let totalValue = 0;
-        for ( const product of products ) {
-            let stockValue = 0;
+    async addMultipleAvailabilities( products, stocks, warehouse ) {
+        let result = [];
+
+        for ( let product of products ) {
+            let productObject = {
+                ...product,
+                totalQuantity : 0,
+                totalValue    : 0,
+                stocks        : [],
+            };
+
             for ( const stock of stocks ) {
+                let stockObject = {
+                    id             : stock.id,
+                    uuid           : stock.uuid,
+                    name           : stock.name,
+                    value          : 0,
+                    quantity       : 0,
+                    availabilities : [],
+                };
+
                 const availabilities = await strapi.query( AVAILABILITY_MODEL ).findMany({
                     where : {
-                        stock : stock.id,
-                        batch : {
-                            product : product.id,
-                        },
+                        stock     : stock.id,
+                        product   : product.id,
+                        warehouse : warehouse.id,
                     },
                     select : ["uuid", "quantity"],
                     populate : {
@@ -25,25 +40,28 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
                     },
                 });
 
-                
                 if ( product.purchaseInfo ) {
                     for ( const availability of availabilities ) {
-                        stockValue += availability.quantity * product.purchaseInfo.purchasePrice;
+                        stockObject.value += availability.quantity * product.purchaseInfo.purchasePrice;
                     }
                 }
-                
-                stock.availabilities = availabilities;
-                stock.value          = stockValue;
 
-                totalValue += stockValue;
+                stockObject.availabilities = availabilities;
+                stockObject.quantity       = availabilities.reduce( ( sum, availability ) => sum + availability.quantity, 0 );
+
+                productObject.stocks.push( stockObject );
+
+                productObject.totalValue    += stockObject.value;
+                productObject.totalQuantity += stockObject.quantity;
             }
+            
+            delete productObject.purchaseInfo;
+            delete productObject.saleInfo;
 
-            product.stocks     = stocks;
-            product.totalValue = totalValue;
-
-            delete product.purchaseInfo;
-            delete product.saleInfo;
+            result.push( productObject );
         }
+
+        return result;
     },
 
     async addSingleAvailabilities( product, stock ) {
@@ -51,10 +69,8 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
 
         const availabilities = await strapi.query( AVAILABILITY_MODEL ).findMany({
             where : {
-                stock : stock.id,
-                batch : {
-                    product : product.id,
-                },
+                stock   : stock.id,
+                product : product.id,
             },
             select : ["uuid", "quantity"],
             populate : {

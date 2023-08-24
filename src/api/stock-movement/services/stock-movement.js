@@ -39,9 +39,9 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             });
         }
 
-        if ( movement === "entrance" ) {
+        if ( movement === "entrance" || ( movement === "adjust" && data.quantity > 0 ) ) {
             if ( !product.isActive ) {
-                throw new BadRequestError( "You cannot make an entrance of a inactive product", {
+                throw new BadRequestError( "You cannot make an entrance/adjustment of a inactive product", {
                     key  : "stock-movement.inactiveProduct",
                     path : ctx.request.path,
                 });
@@ -261,5 +261,189 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         }
 
         return updatedAvailability;
+    },
+
+    async handleNoBatchTransferCreation( data, warehouseOut, warehouseIn, product, stockOut, stockIn ) {
+        const ctx = strapi.requestContext.get();
+
+        const outAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
+            where : {
+                stock     : stockOut.id,
+                warehouse : warehouseOut.id,
+                product   : product.id,
+            },
+        });
+
+        if ( !outAvailability ) {
+            throw new BadRequestError( "There is no availability for this product in the Out Stock", {
+                key  : "stock-movement.noAvailability",
+                path : ctx.request.path,
+            });
+        }
+
+        if ( outAvailability.quantity < data.quantity ) {
+            throw new BadRequestError( "There is not enough quantity for this product in the Out Stock", {
+                key  : "stock-movement.notEnoughQuantity",
+                path : ctx.request.path,
+            });
+        }
+
+        const updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
+            data : {
+                quantity : outAvailability.quantity - data.quantity,
+            },
+            fields   : availabilityFields.fields,
+            populate : availabilityFields.populate,
+        })
+
+        const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
+            where : {
+                stock     : stockIn.id,
+                warehouse : warehouseIn.id,
+                product   : product.id,
+            },
+        });
+
+        if ( inAvailability ) {
+            const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
+                data : {
+                    quantity : inAvailability.quantity + data.quantity,
+                },
+                fields   : availabilityFields.fields,
+                populate : availabilityFields.populate,
+            });
+
+            return {
+                out : updatedOutAvailability,
+                in  : updatedAvailability,
+            };
+        } else {
+            const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+                data : {
+                    stock     : stockIn.id,
+                    warehouse : warehouseIn.id,
+                    quantity  : data.quantity,
+                    product   : product.id,
+                },
+                fields   : availabilityFields.fields,
+                populate : availabilityFields.populate,
+            });
+
+            return {
+                out : updatedOutAvailability,
+                in  : newAvailability,
+            };
+        }
+    },
+
+    async handleBatchTransferCreation( data, warehouseOut, warehouseIn, product, stockOut, stockIn ) {
+        const ctx = strapi.requestContext.get();
+
+        const batch = await strapi.query( BATCH_MODEL ).findOne({
+            where : {
+                uuid    : data.batch,
+                product : product.id,
+            },
+        });
+
+        if ( !batch ) {
+            throw new BadRequestError( `Batch with uuid ${ data.batch } not found`, {
+                key  : "stock-movement.batchNotFound",
+                path : ctx.request.path,
+            });
+        }
+
+        const outAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
+            where : {
+                batch     : batch.id,
+                stock     : stockOut.id,
+                warehouse : warehouseOut.id,
+                product   : product.id,
+            },
+        });
+
+        if ( !outAvailability ) {
+            throw new BadRequestError( "There is no availability for this product in the Out Stock", {
+                key  : "stock-movement.noAvailability",
+                path : ctx.request.path,
+            });
+        }
+
+        if ( outAvailability.quantity < data.quantity ) {
+            throw new BadRequestError( "There is not enough quantity for this product in the Out Stock", {
+                key  : "stock-movement.notEnoughQuantity",
+                path : ctx.request.path,
+            });
+        }
+
+        const updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
+            data : {
+                quantity : outAvailability.quantity - data.quantity,
+            },
+            fields   : availabilityFields.fields,
+            populate : availabilityFields.populate,
+        });
+
+        const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
+            where : {
+                batch     : batch.id,
+                stock     : stockIn.id,
+                warehouse : warehouseIn.id,
+                product   : product.id,
+            },
+        });
+
+        if ( inAvailability ) {
+            const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
+                data : {
+                    quantity : inAvailability.quantity + data.quantity,
+                },
+                fields   : availabilityFields.fields,
+                populate : availabilityFields.populate,
+            });
+
+            return {
+                out : updatedOutAvailability,
+                in  : updatedAvailability,
+            };
+        } else {
+            const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+                data : {
+                    batch     : batch.id,
+                    stock     : stockIn.id,
+                    warehouse : warehouseIn.id,
+                    quantity  : data.quantity,
+                    product   : product.id,
+                },
+                fields   : availabilityFields.fields,
+                populate : availabilityFields.populate,
+            });
+
+            return {
+                out : updatedOutAvailability,
+                in  : newAvailability,
+            }
+        }
+    },
+
+    async handleNoBatchAdjustmentCreation( data, warehouse, product, stock ) {
+        if ( data.quantity > 0 ) {
+            return await strapi.service( STOCK_MOVEMENT_MODEL ).handleNoBatchEntranceCreation( data, warehouse, product, stock );
+        }
+
+        if ( data.quantity < 0 ) {
+            return await strapi.service( STOCK_MOVEMENT_MODEL ).handleNoBatchExitCreation( data, warehouse, product, stock );
+        }
+    },
+
+    async handleBatchAdjustmentCreation( data, warehouse, product, stock ) {
+        if ( data.quantity > 0 ) {
+            return await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchEntranceCreation( data, product, warehouse, stock );
+        }
+
+        if ( data.quantity < 0 ) {
+            data.quantity = -data.quantity;
+            return await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchExitCreation( data, warehouse, product, stock );
+        }
     },
 }));

@@ -1,0 +1,21 @@
+{
+  "kind": "collectionType",
+  "collectionName": "adjustment_motives",
+  "info": {
+    "singularName": "adjustment-motive",
+    "pluralName": "adjustment-motives",
+    "displayName": "Adjustment Motive"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uuid": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    }
+  }
+}

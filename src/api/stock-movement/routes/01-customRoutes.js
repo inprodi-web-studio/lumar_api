@@ -15,5 +15,10 @@ module.exports = {
         path: "/stock-movements/transfer",
         handler: "stock-movement.transfer",
       },
+      {
+        method: "POST",
+        path: "/stock-movements/adjust",
+        handler: "stock-movement.adjust",
+      },
     ],
 }
