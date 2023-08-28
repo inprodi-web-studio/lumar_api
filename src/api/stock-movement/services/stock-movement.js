@@ -47,20 +47,20 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 });
             }
 
-            if ( product.inventoryInfo.expirationDays && !data.expirationDay ) {
+            if ( product.inventoryInfo?.expirationDays && !data.expirationDay ) {
                 throw new UnprocessableContentError( ["Expiration day is required beacuse the product has being configured to manage expiration"] );
             }
     
-            if ( !product.inventoryInfo.expirationDays && data.expirationDay ) {
+            if ( !product.inventoryInfo?.expirationDays && data.expirationDay ) {
                 throw new UnprocessableContentError( ["Expiration day is not required beacuse the product has being configured to dont manage expiration"] );
             }
         }
 
-        if ( product.inventoryInfo.manageBatches && !data.batch ) {
+        if ( product.inventoryInfo?.manageBatches && !data.batch ) {
             throw new UnprocessableContentError( ["Batch is required because the product has being configured to manage batches"] );
         }
 
-        if ( !product.inventoryInfo.manageBatches && data.batch ) {
+        if ( !product.inventoryInfo?.manageBatches && data.batch ) {
             throw new UnprocessableContentError( ["Batch is not required because the product has being configured to dont manage batches"] );
         }
     },
