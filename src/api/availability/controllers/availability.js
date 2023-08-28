@@ -61,7 +61,10 @@ module.exports = createCoreController( AVAILABILITY_MODEL, ({ strapi }) => ({
 
         const products = await findMany( PRODUCT_MODEL, productFields, filters );
 
-        return await strapi.service( AVAILABILITY_MODEL ).addMultipleAvailabilities( products.data, stocks.data, warehouse );
+        return {
+            data : await strapi.service( AVAILABILITY_MODEL ).addMultipleAvailabilities( products.data, stocks.data, warehouse ),
+            meta : products.meta,
+        };
     },
 
     async findOne( ctx ) {
