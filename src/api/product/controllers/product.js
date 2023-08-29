@@ -21,6 +21,9 @@ const productFields = {
         purchaseInfo : {
             fields : ["purchasePrice", "iva"],
         },
+        inventoryInfo : {
+            fields : ["manageBatches", "expirationDays", "alertQuantity"],
+        },
         unity : {
             fields : ["uuid", "name"],
         },
