@@ -15,6 +15,9 @@ const { createCoreController } = require("@strapi/strapi").factories;
 const productFields = {
     fields : ["uuid", "sku", "name", "description", "type", "isActive", "materials"],
     populate : {
+        batches : {
+            fields : ["uuid", "name", "expirationDay"],
+        },
         saleInfo : {
             fields : ["salePrice", "iva"],
         },
