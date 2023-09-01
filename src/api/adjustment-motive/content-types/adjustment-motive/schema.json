@@ -4,10 +4,11 @@
   "info": {
     "singularName": "adjustment-motive",
     "pluralName": "adjustment-motives",
-    "displayName": "Adjustment Motive"
+    "displayName": "Adjustment Motive",
+    "description": ""
   },
   "options": {
-    "draftAndPublish": true
+    "draftAndPublish": false
   },
   "pluginOptions": {},
   "attributes": {

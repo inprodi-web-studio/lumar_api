@@ -9,6 +9,7 @@ const {
     INVITATION_MODEL,
     AVAILABILITY_MODEL,
     BATCH_MODEL,
+    ADJUSTMENT_MOTIVE_MODEL,
 } = require("../constants/models");
 
 const generateUsers          = require("./user");
@@ -19,8 +20,9 @@ const generateCategories     = require("./category");
 const generateUnities        = require("./unity");
 const generatetags           = require("./tag");
 const generateProducts       = require("./product");
+const generateBatches        = require("./batch");
+const generateMotives        = require("./motive");
 const generateAvailabilities = require("./availability");
-const generateBatches = require("./batch");
 
 const clearData = async ( strapi ) => {
     const collectionTypeUids = [
@@ -34,6 +36,7 @@ const clearData = async ( strapi ) => {
         WAREHOUSE_MODEL,
         INVITATION_MODEL,
         AVAILABILITY_MODEL,
+        ADJUSTMENT_MOTIVE_MODEL,
     ];
 
     for ( const collectionTypeUid of collectionTypeUids ) {
@@ -61,6 +64,7 @@ const generateSeedData = async ( strapi ) => {
     await generateStocks( strapi );
     await generateCategories( strapi );
     await generateUnities( strapi );
+    await generateMotives( strapi );
     await generatetags( strapi );
     await generateProducts( strapi );
     await generateBatches( strapi );
