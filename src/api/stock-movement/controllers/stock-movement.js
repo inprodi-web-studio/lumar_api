@@ -43,11 +43,11 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         let availability = null;
 
-        if ( !product.inventoryInfo.manageBatches ) {
+        if ( !product.inventoryInfo?.manageBatches ) {
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleNoBatchEntranceCreation( data, warehouse, product, stock );
         }
 
-        if ( product.inventoryInfo.manageBatches ) {
+        if ( product.inventoryInfo?.manageBatches ) {
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchEntranceCreation( data, product, warehouse, stock );
         }
 
@@ -78,11 +78,11 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         let availability = null;
 
-        if ( !product.inventoryInfo.manageBatches ) {
+        if ( !product.inventoryInfo?.manageBatches ) {
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleNoBatchExitCreation( data, warehouse, product, stock );
         }
 
-        if ( product.inventoryInfo.manageBatches ) {
+        if ( product.inventoryInfo?.manageBatches ) {
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchExitCreation( data, warehouse, product, stock );
         }
 
@@ -121,11 +121,11 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         let availability = null;
 
-        if ( !product.inventoryInfo.manageBatches ) {
+        if ( !product.inventoryInfo?.manageBatches ) {
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleNoBatchTransferCreation( data, warehouseOut, warehouseIn, product, stockOut, stockIn );
         }
 
-        if ( product.inventoryInfo.manageBatches ) {
+        if ( product.inventoryInfo?.manageBatches ) {
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchTransferCreation( data, warehouseOut, warehouseIn, product, stockOut, stockIn );
         }
 
@@ -156,11 +156,11 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         let availability = null;
 
-        if ( !product.inventoryInfo.manageBatches ) {
+        if ( !product.inventoryInfo?.manageBatches ) {
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleNoBatchAdjustmentCreation( data, warehouse, product, stock );
         }
 
-        if ( product.inventoryInfo.manageBatches ) {
+        if ( product.inventoryInfo?.manageBatches ) {
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchAdjustmentCreation( data, warehouse, product, stock );
         }
 
