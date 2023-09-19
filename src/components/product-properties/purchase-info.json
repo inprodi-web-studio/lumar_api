@@ -1,7 +1,8 @@
 {
   "collectionName": "components_product_properties_purchase_infos",
   "info": {
-    "displayName": "Purchase Info"
+    "displayName": "Purchase Info",
+    "description": ""
   },
   "options": {},
   "attributes": {
@@ -11,6 +12,7 @@
     "iva": {
       "type": "enumeration",
       "enum": [
+        "none",
         "cero",
         "eight",
         "sixteen"

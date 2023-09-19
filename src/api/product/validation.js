@@ -12,14 +12,14 @@ const addProductSchema = yup.object().shape({
     tags        : yup.array().of(yup.string()),
     saleInfo    : yup.object().shape({
         salePrice : yup.number().required("Sale price is required"),
-        iva       : yup.string().oneOf(["cero", "eight", "sixteen"]).required("IVA is required"),
+        iva       : yup.string().oneOf(["none", "cero", "eight", "sixteen"]).required("IVA is required"),
     }).noUnknown().strict().nullable(),
     purchaseInfo: yup.object().shape({
         purchasePrice : yup.number().required("Purchase price is required"),
-        iva           : yup.string().oneOf(["cero", "eight", "sixteen"]).required("IVA is required"),
+        iva           : yup.string().oneOf(["none","cero", "eight", "sixteen"]).required("IVA is required"),
     }).noUnknown().strict().nullable(),
     inventoryInfo : yup.object().shape({
-        manageBatches  : yup.boolean().required("Manage batches is required"),
+        manageBatches  : yup.boolean().nullable(),
         expirationDays : yup.number().nullable(),
         alertQuantity  : yup.number().nullable(),
     }).noUnknown().strict(),

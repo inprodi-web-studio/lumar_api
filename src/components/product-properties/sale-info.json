@@ -2,7 +2,8 @@
   "collectionName": "components_product_properties_sale_infos",
   "info": {
     "displayName": "saleInfo",
-    "icon": "attachment"
+    "icon": "attachment",
+    "description": ""
   },
   "options": {},
   "attributes": {
@@ -12,6 +13,7 @@
     "iva": {
       "type": "enumeration",
       "enum": [
+        "none",
         "cero",
         "eight",
         "sixteen"
