@@ -6,11 +6,7 @@ const addEntranceSchema = yup.object().shape({
     stock     : yup.string().required("Stock is required"),
     product   : yup.string().required("Product is required"),
     type      : yup.string().oneOf(["deal", "warranty", "return"]).required("Type is required"),
-    price     : yup.number().when( "type", {
-        is        : "deal",
-        then      : yup.number().required("Price is required"),
-        otherwise : yup.number().oneOf([null], "Price is not required if type is 'deal' or 'warranty'"),
-    }),
+    price     : yup.number().required("Price is required").min( 0, "Price can not be negative"),
     batch         : yup.string(),
     expirationDay : yup.string(),
     quantity      : yup.number().required("Quantity is required"),
@@ -23,7 +19,7 @@ const addExitSchema = yup.object().shape({
     type      : yup.string().oneOf(["deal", "warranty", "return"]).required("Type is required"),
     price     : yup.number().when( "type", {
         is        : "deal",
-        then      : yup.number().required("Price is required"),
+        then      : yup.number().required("Price is required").min( 0, "Price can not be negative"),
         otherwise : yup.number().oneOf([null], "Price is not required if type is 'deal' or 'warranty'"),
     }),
     batch         : yup.string(),
@@ -48,6 +44,15 @@ const addAdjustmentSchema = yup.object().shape({
     motive        : yup.string().required("Motive is required"),
     quantity      : yup.number().required("Quantity is required").not([0], "Can't make an adjustment of 0"),
     expirationDay : yup.string().test( "validateAdjustmentQuantity", "Expiration date is not expected if adjustment is negative", (value, context) => {
+        const quantity = context.options.from[0].value.quantity;
+
+        if ( value && quantity < 0 ) {
+            return false;
+        }
+
+        return true;
+    }),
+    price : yup.number().min( 0, "Price can not be negative").test( "validatePrice", "Price is not expected if adjustment is negative", (value, context) => {
         const quantity = context.options.from[0].value.quantity;
 
         if ( value && quantity < 0 ) {

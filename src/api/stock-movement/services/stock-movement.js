@@ -10,7 +10,7 @@ const { STOCK_MOVEMENT_MODEL, AVAILABILITY_MODEL, BATCH_MODEL } = require("../..
 const { createCoreService } = require("@strapi/strapi").factories;
 
 const availabilityFields = {
-    fields   : ["uuid", "quantity"],
+    fields   : ["uuid", "quantity", "price"],
     populate : {
         stock : {
             fields : ["uuid", "name"],
@@ -47,7 +47,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 });
             }
 
-            if ( product.inventoryInfo?.expirationDays && !data.expirationDay ) {
+            if ( product.inventoryInfo?.expirationDays && !data.expirationDay && !data.batch ) {
                 throw new UnprocessableContentError( ["Expiration day is required beacuse the product has being configured to manage expiration"] );
             }
     
@@ -87,6 +87,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         } else {
             const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
                 data : {
+                    price     : data.price,
                     stock     : stock.id,
                     warehouse : warehouse.id,
                     quantity  : data.quantity,
@@ -131,6 +132,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             } else {
                 const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
                     data : {
+                        price     : data.price,
                         batch     : batch.id,
                         quantity  : data.quantity,
                         stock     : stock.id,
@@ -144,6 +146,14 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 return newAvailability;
             }
         } else {
+            if ( !data.price ) {
+                throw new UnprocessableContentError( ["Price is required"] );
+            }
+
+            if ( product.inventoryInfo?.expirationDays && !data.expirationDay ) {
+                throw new UnprocessableContentError( ["Expiration day is required beacuse the product has being configured to manage expiration"] );
+            }
+
             const newBatch = await strapi.entityService.create( BATCH_MODEL, {
                 data : {
                     expirationDay : data.expirationDay,
@@ -154,6 +164,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
             const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
                 data : {
+                    price     : data.price,
                     stock     : stock.id,
                     warehouse : warehouse.id,
                     batch     : newBatch.id,

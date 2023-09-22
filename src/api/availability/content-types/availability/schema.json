@@ -39,6 +39,9 @@
       "relation": "manyToOne",
       "target": "api::product.product",
       "inversedBy": "availabilities"
+    },
+    "price": {
+      "type": "decimal"
     }
   }
 }

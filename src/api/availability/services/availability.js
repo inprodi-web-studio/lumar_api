@@ -32,7 +32,7 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
                         product   : product.id,
                         warehouse : warehouse.id,
                     },
-                    select : ["uuid", "quantity"],
+                    select : ["uuid", "quantity", "price"],
                     populate : {
                         batch : {
                             select : ["uuid", "name", "expirationDay"],
@@ -40,10 +40,9 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
                     },
                 });
 
-                if ( product.purchaseInfo ) {
-                    for ( const availability of availabilities ) {
-                        stockObject.value += availability.quantity * product.purchaseInfo.purchasePrice;
-                    }
+
+                for ( const availability of availabilities ) {
+                    stockObject.value += availability.quantity * availability.price;
                 }
 
                 stockObject.availabilities = availabilities;
@@ -72,7 +71,7 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
                 stock   : stock.id,
                 product : product.id,
             },
-            select : ["uuid", "quantity"],
+            select : ["uuid", "quantity", "price"],
             populate : {
                 batch : {
                     select : ["uuid", "name", "expirationDay"],
