@@ -86,7 +86,7 @@ module.exports = createCoreController( AVAILABILITY_MODEL, ({ strapi }) => ({
          const warehouse = await findOne( warehouseUuid, WAREHOUSE_MODEL );
          const product   = await findOne( productUuid, PRODUCT_MODEL, productFields);
   
-         await strapi.service( AVAILABILITY_MODEL ).addSingleAvailabilities( product, stock );
+         await strapi.service( AVAILABILITY_MODEL ).addSingleAvailabilities( product, stock, warehouse );
 
          return product;
     },

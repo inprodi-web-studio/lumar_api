@@ -18,7 +18,7 @@
       "target": "api::stock.stock"
     },
     "quantity": {
-      "type": "decimal"
+      "type": "float"
     },
     "uuid": {
       "type": "string"
@@ -41,7 +41,7 @@
       "inversedBy": "availabilities"
     },
     "price": {
-      "type": "decimal"
+      "type": "float"
     }
   }
 }

@@ -63,13 +63,14 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
         return result;
     },
 
-    async addSingleAvailabilities( product, stock ) {
+    async addSingleAvailabilities( product, stock, warehouse ) {
         let stockValue = 0;
 
         const availabilities = await strapi.query( AVAILABILITY_MODEL ).findMany({
             where : {
-                stock   : stock.id,
-                product : product.id,
+                stock     : stock.id,
+                product   : product.id,
+                warehouse : warehouse.id,
             },
             select : ["uuid", "quantity", "price"],
             populate : {
@@ -81,7 +82,7 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
 
         if ( product.purchaseInfo ) {
             for ( const availability of availabilities ) {
-                stockValue += availability.quantity * product.purchaseInfo.purchasePrice;
+                stockValue += availability.quantity * availability.price;
             }
         }
 
