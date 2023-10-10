@@ -4,7 +4,8 @@
   "info": {
     "singularName": "stock-movement",
     "pluralName": "stock-movements",
-    "displayName": "Stock Movement"
+    "displayName": "Stock Movement",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -55,7 +56,7 @@
       "target": "api::batch.batch"
     },
     "quantity": {
-      "type": "float"
+      "type": "decimal"
     }
   }
 }
