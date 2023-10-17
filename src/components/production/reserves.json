@@ -1,0 +1,28 @@
+{
+  "collectionName": "components_production_reserves",
+  "info": {
+    "displayName": "reserves",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "stock": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::stock.stock"
+    },
+    "warehouse": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::warehouse.warehouse"
+    },
+    "batch": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::batch.batch"
+    },
+    "quantity": {
+      "type": "float"
+    }
+  }
+}

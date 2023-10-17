@@ -10,5 +10,6 @@ module.exports = {
     INVITATION_MODEL        : "api::invitation.invitation",
     AVAILABILITY_MODEL      : "api::availability.availability",
     STOCK_MOVEMENT_MODEL    : "api::stock-movement.stock-movement",
+    PRODUCTION_ORDER_MODEL  : "api::production-order.production-order",
     ADJUSTMENT_MOTIVE_MODEL : "api::adjustment-motive.adjustment-motive",
 };

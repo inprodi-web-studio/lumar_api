@@ -1,0 +1,24 @@
+{
+  "collectionName": "components_production_materials",
+  "info": {
+    "displayName": "materials"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "uuid": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "float"
+    },
+    "reserves": {
+      "displayName": "reserves",
+      "type": "component",
+      "repeatable": true,
+      "component": "production.reserves"
+    }
+  }
+}

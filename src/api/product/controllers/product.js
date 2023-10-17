@@ -121,10 +121,11 @@ module.exports = createCoreController( PRODUCT_MODEL, ({ strapi }) => ({
             });
         }
 
-        const categories = await strapi.service( PRODUCT_MODEL ).validateCategories( data.categories );
-        const unity      = await findOne( data.unity, UNITY_MODEL );
-        const tags       = await strapi.service( PRODUCT_MODEL ).validateTags( data.tags );
-        const materials  = await strapi.service( PRODUCT_MODEL ).validateMaterials( data.materials );
+        const categories      = await strapi.service( PRODUCT_MODEL ).validateCategories( data.categories );
+        const unity           = await findOne( data.unity, UNITY_MODEL );
+        const productionUnity = await findOne( data.productionUnity, UNITY_MODEL );
+        const tags            = await strapi.service( PRODUCT_MODEL ).validateTags( data.tags );
+        const materials       = await strapi.service( PRODUCT_MODEL ).validateMaterials( data.materials );
 
         await strapi.service( PRODUCT_MODEL ).checkForDuplicates( data.sku, data.name );
 
@@ -134,8 +135,10 @@ module.exports = createCoreController( PRODUCT_MODEL, ({ strapi }) => ({
                 tags,
                 categories,
                 materials,
-                unity    : unity.id,
-                isActive : true,
+                unity               : unity.id,
+                isActive            : true,
+                productionUnity     : productionUnity.id,
+                unityConversionRate : data.unityConversionRate ? data.unityConversionRate : 1,
             },
             fields   : productFields.fields,
             populate : productFields.populate,

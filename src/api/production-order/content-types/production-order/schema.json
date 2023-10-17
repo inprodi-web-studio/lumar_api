@@ -27,21 +27,22 @@
         "cancelled"
       ]
     },
-    "isActive": {
-      "type": "boolean",
-      "default": true
-    },
     "dueDate": {
       "type": "date"
     },
     "startDate": {
       "type": "date"
     },
-    "products": {
+    "production": {
       "displayName": "Content",
       "type": "component",
-      "repeatable": true,
+      "repeatable": false,
       "component": "production.content"
+    },
+    "warehouse": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::warehouse.warehouse"
     }
   }
 }

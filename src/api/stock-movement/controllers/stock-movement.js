@@ -5,6 +5,7 @@ const {
     PRODUCT_MODEL,
     WAREHOUSE_MODEL,
     STOCK_MOVEMENT_MODEL,
+    ADJUSTMENT_MOTIVE_MODEL,
 } = require("../../../constants/models");
 
 const {
@@ -51,6 +52,19 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchEntranceCreation( data, product, warehouse, stock );
         }
 
+        await strapi.entityService.create( STOCK_MOVEMENT_MODEL, {
+           data : {
+            movementType : "entrance",
+            warehouse    : warehouse.id,
+            stock        : stock.id,
+            product      : product.id,
+            type         : data.type,
+            price        : data.price,
+            quantity     : data.quantity,
+            batch        : availability.batch?.id,
+           },
+        });
+
         return availability;
     },
 
@@ -85,6 +99,19 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         if ( product.inventoryInfo?.manageBatches ) {
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchExitCreation( data, warehouse, product, stock );
         }
+
+        await strapi.entityService.create( STOCK_MOVEMENT_MODEL, {
+            data : {
+             movementType : "exit",
+             warehouse    : warehouse.id,
+             stock        : stock.id,
+             product      : product.id,
+             type         : data.type,
+             price        : data.price,
+             quantity     : data.quantity,
+             batch        : availability.batch?.id,
+            },
+         });
 
         return availability;
     },
@@ -129,6 +156,28 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchTransferCreation( data, warehouseOut, warehouseIn, product, stockOut, stockIn );
         }
 
+        await strapi.entityService.create( STOCK_MOVEMENT_MODEL, {
+            data : {
+             movementType : "exit",
+             warehouse    : warehouseOut.id,
+             stock        : stockOut.id,
+             product      : product.id,
+             quantity     : data.quantity,
+             batch        : availability.batch?.id,
+            },
+         });
+
+        await strapi.entityService.create( STOCK_MOVEMENT_MODEL, {
+            data : {
+             movementType : "entrance",
+             warehouse    : warehouseIn.id,
+             stock        : stockIn.id,
+             product      : product.id,
+             quantity     : data.quantity,
+             batch        : availability.batch?.id,
+            },
+         });
+
         return availability;
     },
 
@@ -145,6 +194,8 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 inventoryInfo : true,
             },
         });
+
+        const motive = await findOne( data.motive, ADJUSTMENT_MOTIVE_MODEL );
 
         const stock = await findOne( data.stock, STOCK_MODEL, {
             populate : {
@@ -163,6 +214,19 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         if ( product.inventoryInfo?.manageBatches ) {
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchAdjustmentCreation( data, warehouse, product, stock );
         }
+
+        await strapi.entityService.create( STOCK_MOVEMENT_MODEL, {
+            data : {
+             movementType : "adjust",
+             warehouse    : warehouse.id,
+             stock        : stock.id,
+             product      : product.id,
+             price        : data.price,
+             quantity     : data.quantity,
+             batch        : availability.batch?.id,
+             motive       : motive.id,
+            },
+         });
 
         return availability;
     },
