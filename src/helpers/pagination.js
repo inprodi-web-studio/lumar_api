@@ -5,7 +5,7 @@ const pagination = async ( model, filters ) => {
     const ctx          = strapi.requestContext.get();
     const queryFilters = ctx.query.filters;
     const page         = ctx.query.page || 1;
-    const pageSize     = ctx.query.limit || 1;
+    const pageSize     = ctx.query.limit || 30;
 
     const formattedFilters = formatFilters( filters );
 
