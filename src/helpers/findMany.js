@@ -14,7 +14,7 @@ async function findMany( MODEL, schema, filters ) {
 
     const items = await strapi.entityService.findMany( MODEL, {
         start    : meta.start,
-        limit    : meta.pageSize,
+        limit    : 1,
         fields   : formattedFields.fields,
         populate : formattedFields.populate,
         filters  : {

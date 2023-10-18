@@ -52,17 +52,17 @@ module.exports = createCoreController( AVAILABILITY_MODEL, ({ strapi }) => ({
 
         const warehouse = await findOne( uuid, WAREHOUSE_MODEL );
 
-        const stocks = await findMany( STOCK_MODEL, {
-            fields  : ["uuid", "name"],
-            filters : {
+        const stocks = await strapi.query( STOCK_MODEL ).findMany({
+            where : {
                 warehouses : warehouse.id,
             },
+            select : ["id", "uuid", "name"],
         });
 
         const products = await findMany( PRODUCT_MODEL, productFields, filters );
 
         return {
-            data : await strapi.service( AVAILABILITY_MODEL ).addMultipleAvailabilities( products.data, stocks.data, warehouse ),
+            data : await strapi.service( AVAILABILITY_MODEL ).addMultipleAvailabilities( products.data, stocks, warehouse ),
             meta : products.meta,
         };
     },
