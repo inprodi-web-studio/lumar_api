@@ -9,12 +9,12 @@ const addProductSchema = yup.object().shape({
     type                : yup.string().oneOf(["mp", "sp", "pt"]).required("Type is required"),
     categories          : yup.array().of(yup.string()).min(1, "At least one category is required"),
     unity               : yup.string().required("Unity is required"),
-    productionUnity     : yup.string().required("Production unity is required"),
-    unityConversionRate: yup.number().when(['unity', 'productionUnity'], {
-        is        : (unity, productionUnity) => unity !== productionUnity,
-        then      : yup.number().required("UnityConversionRate is required when Unity and ProductionUnity are different"),
-        otherwise : yup.number().oneOf([null], "UnityConversionRate is required only when Unity and ProductionUnity are different"),
-    }),
+    // productionUnity     : yup.string().required("Production unity is required"),
+    // unityConversionRate: yup.number().when(['unity', 'productionUnity'], {
+    //     is        : (unity, productionUnity) => unity !== productionUnity,
+    //     then      : yup.number().required("UnityConversionRate is required when Unity and ProductionUnity are different"),
+    //     otherwise : yup.number().oneOf([null], "UnityConversionRate is required only when Unity and ProductionUnity are different"),
+    // }),
     tags     : yup.array().of(yup.string()),
     saleInfo : yup.object().shape({
         salePrice : yup.number().required("Sale price is required"),
