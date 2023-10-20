@@ -9,6 +9,7 @@ module.exports = {
     WAREHOUSE_MODEL         : "api::warehouse.warehouse",
     INVITATION_MODEL        : "api::invitation.invitation",
     AVAILABILITY_MODEL      : "api::availability.availability",
+    STOCKS_ORDER_MODEL      : "api::stocks-order.stocks-order",
     STOCK_MOVEMENT_MODEL    : "api::stock-movement.stock-movement",
     PRODUCTION_ORDER_MODEL  : "api::production-order.production-order",
     ADJUSTMENT_MOTIVE_MODEL : "api::adjustment-motive.adjustment-motive",

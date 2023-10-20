@@ -1,0 +1,18 @@
+{
+  "collectionName": "components_production_s_r",
+  "info": {
+    "displayName": "stockReserves",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "productionOrder": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::production-order.production-order"
+    },
+    "quantity": {
+      "type": "float"
+    }
+  }
+}

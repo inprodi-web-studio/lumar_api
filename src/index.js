@@ -15,6 +15,7 @@ const {
   AVAILABILITY_MODEL,
   ADJUSTMENT_MOTIVE_MODEL,
   PRODUCTION_ORDER_MODEL,
+  STOCKS_ORDER_MODEL,
 } = require("./constants/models");
 
 module.exports = {
@@ -34,6 +35,7 @@ module.exports = {
         CATEGORY_MODEL,
         WAREHOUSE_MODEL,
         INVITATION_MODEL,
+        STOCKS_ORDER_MODEL,
         AVAILABILITY_MODEL,
         PRODUCTION_ORDER_MODEL,
         ADJUSTMENT_MOTIVE_MODEL,

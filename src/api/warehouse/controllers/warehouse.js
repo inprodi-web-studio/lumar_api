@@ -3,6 +3,8 @@
 const {
     STOCK_MODEL,
     WAREHOUSE_MODEL,
+    STOCKS_ORDER_MODEL,
+    AVAILABILITY_MODEL,
 } = require("../../../constants/models");
 
 const {
@@ -108,6 +110,47 @@ module.exports = createCoreController( WAREHOUSE_MODEL, ({ strapi }) => ({
         const warehouse = await findOne( warehouse_uuid, WAREHOUSE_MODEL );
         const stock     = await findOne( stock_uuid, STOCK_MODEL );
 
+        
+        const order = await strapi.query( STOCKS_ORDER_MODEL ).findOne({
+            where : {
+                warehouse : warehouse.id,
+            },
+            populate : {
+                stocksOrder : {
+                    populate : {
+                        stock : true,
+                    },
+                },
+            },
+        });
+
+        if ( !order ) {
+            await strapi.entityService.create( STOCKS_ORDER_MODEL, {
+                data : {
+                    warehouse : warehouse.id,
+                    stocksOrder : [{
+                        stock : stock.id,
+                        order : 1,
+                    }],
+                },
+            });
+        } else {
+            const hasCurrentStock = order.stocksOrder?.filter( item => item.stock?.id === stock.id ).length > 0;
+
+            if ( !hasCurrentStock ) {
+                await strapi.entityService.update( STOCKS_ORDER_MODEL, order.id, {
+                    data : {
+                        stocksOrder : [
+                            ...order.stocksOrder,
+                            {
+                                stock : stock.id,
+                            },
+                        ],
+                    },
+                });
+            };
+        }
+
         const updatedWarehouse = await strapi.entityService.update( WAREHOUSE_MODEL, warehouse.id, {
             data : {
                 stocks : {
@@ -127,10 +170,41 @@ module.exports = createCoreController( WAREHOUSE_MODEL, ({ strapi }) => ({
             warehouse_uuid,
         } = ctx.params;
 
-        // TODO: No dejar que se desasigne un inventario si tiene disponibilidades en el almacén en ese inventario
-
         const warehouse = await findOne( warehouse_uuid, WAREHOUSE_MODEL );
         const stock     = await findOne( stock_uuid, STOCK_MODEL );
+
+        const availabilities = await strapi.query( AVAILABILITY_MODEL ).findMany({
+            warehouse : warehouse.id,
+            stock     : stock.id,
+        });
+
+        if ( availabilities.length > 0 ) {
+            throw new BadRequestError( "You can't unassign this stock because has availabilities", {
+                key  : "warehouse.withAvailabilities",
+                path : ctx.request.path,
+            });
+        }
+
+        const order = await strapi.query( STOCKS_ORDER_MODEL ).findOne({
+            where : {
+                warehouse : warehouse.id,
+            },
+            populate : {
+                stocksOrder : {
+                    populate : {
+                        stock : true,
+                    },
+                },
+            },
+        });
+
+        const newOrder = order.stocksOrder?.filter( item => item.stock?.id !== stock.id );
+
+        await strapi.entityService.update( STOCKS_ORDER_MODEL, order.id, {
+            data : {
+                stocksOrder : newOrder,
+            },
+        });
 
         const updatedWarehouse = await strapi.entityService.update( WAREHOUSE_MODEL, warehouse.id, {
             data : {

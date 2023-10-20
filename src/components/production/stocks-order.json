@@ -1,0 +1,15 @@
+{
+  "collectionName": "components_production_stocks_orders",
+  "info": {
+    "displayName": "stocksOrder",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "stock": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::stock.stock"
+    }
+  }
+}

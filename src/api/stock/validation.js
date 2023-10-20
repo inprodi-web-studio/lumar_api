@@ -6,6 +6,11 @@ const addStockSchema = yup.object().shape({
     description : yup.string().required("Description is required"),
 }).noUnknown().strict();
 
+const updateOrderSchema = yup.object().shape({
+   order : yup.array().of(yup.string()).required("Order is required"), 
+});
+
 module.exports = {
-    validateAddStock : validateYupSchema( addStockSchema ),
+    validateAddStock    : validateYupSchema( addStockSchema ),
+    validateUpdateOrder : validateYupSchema( updateOrderSchema ),
 };

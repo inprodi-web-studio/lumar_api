@@ -1,0 +1,30 @@
+{
+  "kind": "collectionType",
+  "collectionName": "stocks_orders",
+  "info": {
+    "singularName": "stocks-order",
+    "pluralName": "stocks-orders",
+    "displayName": "Stocks Order",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uuid": {
+      "type": "string"
+    },
+    "warehouse": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::warehouse.warehouse"
+    },
+    "stocksOrder": {
+      "displayName": "stocksOrder",
+      "type": "component",
+      "repeatable": true,
+      "component": "production.stocks-order"
+    }
+  }
+}

@@ -56,9 +56,10 @@ module.exports = createCoreService( PRODUCTION_ORDER_MODEL, ({ strapi }) => ({
                 materials[ index ].quantity += material.quantity * data.production.quantity;
             } else {
                 materials.push({
-                    uuid     : materialProduct.uuid,
-                    name     : materialProduct.name,
-                    quantity : material.quantity * data.production.quantity,
+                    uuid          : materialProduct.uuid,
+                    name          : materialProduct.name,
+                    quantity      : material.quantity * data.production.quantity,
+                    totalReserved : 0,
                 });
             }
         }

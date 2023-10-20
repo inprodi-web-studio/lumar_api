@@ -18,7 +18,7 @@
       "target": "api::stock.stock"
     },
     "quantity": {
-      "type": "decimal"
+      "type": "float"
     },
     "uuid": {
       "type": "string"
@@ -42,6 +42,15 @@
     },
     "price": {
       "type": "decimal"
+    },
+    "reserves": {
+      "displayName": "stockReserves",
+      "type": "component",
+      "repeatable": true,
+      "component": "production.stock-reserves"
+    },
+    "totalReserved": {
+      "type": "float"
     }
   }
 }

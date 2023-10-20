@@ -6,7 +6,7 @@ const addEntranceSchema = yup.object().shape({
     stock     : yup.string().required("Stock is required"),
     product   : yup.string().required("Product is required"),
     type      : yup.string().oneOf(["deal", "warranty", "return"]).required("Type is required"),
-    price     : yup.number().required("Price is required").min( 0, "Price can not be negative"),
+    price     : yup.number().min( 0, "Price can not be negative"),
     batch         : yup.string(),
     expirationDay : yup.string(),
     quantity      : yup.number().required("Quantity is required"),
