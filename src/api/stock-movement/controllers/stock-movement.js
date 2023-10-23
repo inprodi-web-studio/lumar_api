@@ -163,7 +163,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
              stock        : stockOut.id,
              product      : product.id,
              quantity     : data.quantity,
-             batch        : availability.batch?.id,
+             batch        : availability.out?.batch?.id,
             },
          });
 
@@ -174,7 +174,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
              stock        : stockIn.id,
              product      : product.id,
              quantity     : data.quantity,
-             batch        : availability.batch?.id,
+             batch        : availability.out?.batch?.id,
             },
          });
 
