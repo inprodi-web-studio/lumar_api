@@ -17,11 +17,7 @@ const addExitSchema = yup.object().shape({
     stock     : yup.string().required("Stock is required"),
     product   : yup.string().required("Product is required"),
     type      : yup.string().oneOf(["deal", "warranty", "return"]).required("Type is required"),
-    price     : yup.number().when( "type", {
-        is        : "deal",
-        then      : yup.number().required("Price is required").min( 0, "Price can not be negative"),
-        otherwise : yup.number().oneOf([null], "Price is not required if type is 'deal' or 'warranty'"),
-    }),
+    price     : yup.number().min( 0, "Price can not be negative"),
     batch         : yup.string(),
     quantity      : yup.number().required("Quantity is required"),
 }).noUnknown().strict();
