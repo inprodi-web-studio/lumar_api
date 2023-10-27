@@ -22,7 +22,6 @@
         "partialBooked",
         "booked",
         "inProgress",
-        "partialDelivered",
         "closed",
         "cancelled"
       ]

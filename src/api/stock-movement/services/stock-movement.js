@@ -305,7 +305,11 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             },
             fields   : availabilityFields.fields,
             populate : availabilityFields.populate,
-        })
+        });
+
+        if ( updatedOutAvailability.quantity === 0 ) {
+            await strapi.entityService.delete( AVAILABILITY_MODEL, updatedOutAvailability.id );
+        }
 
         const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
             where : {
@@ -395,6 +399,10 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             populate : availabilityFields.populate,
         });
 
+        if ( updatedOutAvailability.quantity === 0 ) {
+            await strapi.entityService.delete( AVAILABILITY_MODEL, updatedOutAvailability.id );
+        }
+
         const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
             where : {
                 batch     : batch.id,
@@ -443,6 +451,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         }
 
         if ( data.quantity < 0 ) {
+            data.quantity = -data.quantity;
             return await strapi.service( STOCK_MOVEMENT_MODEL ).handleNoBatchExitCreation( data, warehouse, product, stock );
         }
     },

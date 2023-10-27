@@ -1,6 +1,6 @@
 module.exports = ( plugin ) => {
     plugin.routes["content-api"].routes.push({
-        method  : "GET",
+        method  : "POST",
         path    : "/seeds",
         handler : "auth.generateSeeds",
         config  : {

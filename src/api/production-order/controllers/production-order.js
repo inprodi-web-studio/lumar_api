@@ -247,15 +247,15 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                             //     },
                             // });
         
-                            // newData[i].reserves = [
-                            //     ...newData[i].reserves,
-                            //     {
-                            //         stock     : stock.stock.id,
-                            //         warehouse : productionOrder.warehouse.id,
-                            //         batch     : availability.batch?.id,
-                            //         quantity  : standardQuantity - reserved,
-                            //     },
-                            // ];
+                            newData[i].reserves = [
+                                ...newData[i].reserves,
+                                {
+                                    stock     : stock.stock.id,
+                                    warehouse : productionOrder.warehouse.id,
+                                    batch     : availability.batch?.id,
+                                    quantity  : standardQuantity - reserved,
+                                },
+                            ];
         
                             break;
                         } else {
