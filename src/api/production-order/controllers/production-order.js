@@ -2,18 +2,17 @@
 
 const {
     PRODUCT_MODEL,
-    PRODUCTION_ORDER_MODEL,
     WAREHOUSE_MODEL,
-    STOCK_MODEL,
     STOCKS_ORDER_MODEL,
     AVAILABILITY_MODEL,
+    PRODUCTION_ORDER_MODEL,
 } = require("../../../constants/models");
 
 const { validateAddProductionOrder } = require("../validation");
 
 const { BadRequestError, NotFoundError } = require("../../../helpers/errors");
 
-const findOne = require("../../../helpers/findOne");
+const findOne  = require("../../../helpers/findOne");
 const findMany = require("../../../helpers/findMany");
 const getCurrentDateFormatted = require("../../../helpers/getCurrentDateFormatted");
 

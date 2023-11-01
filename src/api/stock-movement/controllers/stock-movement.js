@@ -80,7 +80,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             populate : {
                 inventoryInfo : true,
             },
-        }); 
+        });
 
         const stock = await findOne( data.stock, STOCK_MODEL, {
             populate : {

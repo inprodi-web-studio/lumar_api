@@ -24,6 +24,11 @@ const availabilityFields = {
         product : {
             fields : ["uuid", "name"],
         },
+        reserves : {
+            populate : {
+                productionOrder : true,
+            },
+        },
     },
 };
 
@@ -283,6 +288,8 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 warehouse : warehouseOut.id,
                 product   : product.id,
             },
+            fields   : availabilityFields.fields,
+            populate : availabilityFields.populate,
         });
 
         if ( !outAvailability ) {
@@ -297,6 +304,34 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 key  : "stock-movement.notEnoughQuantity",
                 path : ctx.request.path,
             });
+        }
+
+        // ? Primero se debe de agarrar el inventario de la reservación que se creó primero
+
+        if ( outAvailability.reserves?.length > 0 ) {
+            let transferedQuantity = 0;
+            let newReserves        = [];
+            let reserves           = [...outAvailability.reserves];
+
+            for ( let i = 0; i < outAvailability.reserves.length; i++ ) {
+                const reserve = outAvailability.reserves[i];
+
+                if ( parseFloat((data.quantity - transferedQuantity).toFixed(4)) >= reserve.quantity ) {
+                    newReserves.push({
+                        quantity        : reserve.quantity,
+                        productionOrder : reserve.productionOrder.id,
+                    });
+
+                    reserves.splice( i, 1 );
+
+                    transferedQuantity += reserve.quantity;
+
+                } else {
+
+                }
+            }
+
+            return transferedQuantity;
         }
 
         const updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
