@@ -70,6 +70,36 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
         const { id : uuid } = ctx.params;
 
         const productionOrder = await findOne( uuid, PRODUCTION_ORDER_MODEL, productionOrderFields );
+        const stockOrder      = await strapi.query( STOCKS_ORDER_MODEL ).findOne({
+            where : {
+                warehouse : productionOrder.warehouse.id,
+            },
+            populate : {
+                stocksOrder : {
+                    populate : {
+                        stock : true,
+                    },
+                },
+            },
+        });
+
+        if ( !stockOrder ) {
+            throw new NotFoundError( "Stock order criteria for warehouse not found", {
+                key  : "stock-order.notFound",
+                path : ctx.request.path,
+            });
+        }
+
+        for ( const material of productionOrder.production?.materials ) {
+            const mainStockReserved = material.reserves?.reduce((acc, reserve) => {
+                if ( reserve.stock.uuid === stockOrder.stocksOrder[0].stock.uuid ) {
+                    return acc + reserve.quantity;
+                }
+                return acc;
+            }, 0);
+
+            material.mainStockReserved = mainStockReserved;
+        }
 
         return productionOrder;
     },
@@ -148,6 +178,13 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
 
         const productionOrder = await findOne( uuid, PRODUCTION_ORDER_MODEL, productionOrderFields );
 
+        if ( productionOrder.status === "booked" || productionOrder.status === "inProgress" || productionOrder.status === "closed" || productionOrder.status === "cancelled" ) {
+            throw new BadRequestError( "Only opened and partial booked production orders can be reserved", {
+                key  : "production-order.invalidStatus",
+                path : ctx.request.path,
+            });
+        }
+
         const stockOrder = await strapi.query( STOCKS_ORDER_MODEL ).findOne({
             where : {
                 warehouse : productionOrder.warehouse.id,
@@ -168,7 +205,9 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             });
         }
 
-        let reservedItems = 0;
+        let reservedItems  = 0;
+        let completedItems = 0;
+
         let newData = [
             ...productionOrder.production.materials
         ];
@@ -177,89 +216,204 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
 
         for (let i = 0; i < productionOrder.production?.materials.length; i++) {
             const material = productionOrder.production?.materials[i];
-
-            if (material.quantity === material.totalReserved) break;
         
             let foundMaterial = false;
         
             const stocksOrder = stockOrder.stocksOrder;
+
+            const materialProduct = await findOne(material.uuid, PRODUCT_MODEL);
         
+            const standardQuantity = parseFloat( (material.quantity / materialProduct.unityConversionRate).toFixed(4) );
+
+            let reserved    = material.totalReserved;
+            let newReserved = 0;
+
+            if ( reserved === material.quantity ) {
+                completedItems += 1;
+                continue;
+            };
+
+            let isCompleted = false;
+
             for (let j = 0; j < stocksOrder.length; j++) {
                 const stock = stocksOrder[j];
 
+                if ( isCompleted ) {
+                    continue;
+                }
+                
                 const availabilities = await strapi.query(AVAILABILITY_MODEL).findMany({
                     where: {
-                        stock: stock.stock.id,
-                        batch: {
-                            $or: [
+                        stock : stock.stock.id,
+                        batch : {
+                            $or : [
                                 {
-                                    expirationDay: {
-                                        $gte: currentDate,
+                                    expirationDay : {
+                                        $gte : currentDate,
                                     },
                                 },
                                 {
-                                    expirationDay: null,
+                                    expirationDay : null,
                                 },
                             ],
                         },
-                        product: {
-                            uuid: material.uuid,
+                        product : {
+                            uuid : material.uuid,
                         },
-                        warehouse: productionOrder.warehouse.id,
+                        warehouse : productionOrder.warehouse.id,
                     },
-                    orderBy: {
-                        batch: {
-                            expirationDay: "asc",
+                    orderBy: [
+                        {
+                            quantity : "desc",
                         },
-                    },
+                        {
+                            batch : {
+                                expirationDay: "asc",
+                            },
+                        },
+                    ],
                     select: ["uuid", "quantity", "totalReserved"],
                     populate: {
                         batch: {
                             select: ["id", "uuid", "name", "expirationDay"],
                         },
-                        reserves: true,
+                        reserves: {
+                            populate : {
+                                productionOrder : true,
+                            },
+                        },
+                        stock : true,
                     },
                 });
         
-                if (availabilities.length > 0) {
-                    foundMaterial = true;
-        
-                    const materialProduct = await findOne(material.uuid, PRODUCT_MODEL);
-        
-                    const standardQuantity = material.quantity / materialProduct.unityConversionRate;
-        
-                    let reserved = material.totalReserved;
-        
-                    for (let k = 0; k < availabilities.length; k++) {
-                        const availability = availabilities[k];
+                for (let k = 0; k < availabilities.length; k++) {
+                    const availability = availabilities[k];
 
-                        if ((availability.quantity - availability.totalReserved) >= (standardQuantity - reserved)) {
-                            // await strapi.entityService.update(AVAILABILITY_MODEL, availability.id, {
-                            //     data : {
-                            //         totalReserved : availability.totalReserved + standardQuantity - reserved,
-                            //         reserves : [
-                            //             ...availability.reserves,
-                            //             {
-                            //                 productionOrder: productionOrder.id,
-                            //                 quantity: standardQuantity - reserved,
-                            //             },
-                            //         ],
-                            //     },
-                            // });
-        
+                    if (parseFloat( (availability.quantity - availability.totalReserved).toFixed(4) ) >= parseFloat( ((standardQuantity - (reserved / materialProduct.unityConversionRate)) - newReserved).toFixed(4) )) {
+                        foundMaterial = true;
+
+                        const index = availability.reserves.findIndex( reserve => reserve.productionOrder.id === productionOrder.id );
+
+                        if ( index !== -1 ) {
+                            let availabilityReserves = availability.reserves;
+                            const pastReservation    = availability.reserves[index];
+
+                            pastReservation.quantity = parseFloat( (pastReservation.quantity + (standardQuantity - (reserved / materialProduct.unityConversionRate) - newReserved)).toFixed(4) );
+                            
+                            const newTotalReserve = parseFloat( (availability.totalReserved + (standardQuantity - (reserved / materialProduct.unityConversionRate) - newReserved)).toFixed(4) );
+
+                            delete availabilityReserves[index];
+
+                            availabilityReserves[index] = pastReservation;
+
+                            await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
+                                data : {
+                                    totalReserved : newTotalReserve,
+                                    reserves : availabilityReserves,
+                                },
+                            });
+
+                            newData[i].totalReserved = parseFloat(((material.quantity - reserved - (newReserved * materialProduct.unityConversionRate)) + newData[i].totalReserved).toFixed(4) );
+
+                            const availabilityIndex = newData[i].reserves.findIndex( item => item.stock.uuid === availability.stock.uuid && item.warehouse.uuid === productionOrder.warehouse.uuid && item.batch?.uuid === availability.batch?.uuid );
+
+                            newData[i].reserves[availabilityIndex].quantity = parseFloat(((material.quantity - reserved - (newReserved * materialProduct.unityConversionRate)) + newData[i].reserves[availabilityIndex].quantity).toFixed(4) );
+                        } else {
+                            console.log("Caso de análisis");
+                            // TODO: Planchar el caso en el que se liquida la reservación con una disponibilidad que no se tiene asignada en la orden de producción (revisar newReserved, seguraemte esta mal)
+
+                            await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
+                                data : {
+                                    totalReserved : parseFloat( (availability.totalReserved + (standardQuantity - reserved - newReserved)).toFixed(4) ),
+                                    reserves : [
+                                        ...availability.reserves,
+                                        {
+                                            productionOrder : productionOrder.id,
+                                            quantity        : parseFloat( (standardQuantity - reserved - newReserved).toFixed(4) ),
+                                        },
+                                    ],
+                                },
+                            });
+
+                            newData[i].totalReserved += parseFloat( ((standardQuantity - reserved - newReserved) * materialProduct.unityConversionRate).toFixed(4) );
+
                             newData[i].reserves = [
                                 ...newData[i].reserves,
                                 {
                                     stock     : stock.stock.id,
                                     warehouse : productionOrder.warehouse.id,
                                     batch     : availability.batch?.id,
-                                    quantity  : standardQuantity - reserved,
+                                    quantity  : parseFloat( ((standardQuantity - reserved - newReserved) * materialProduct.unityConversionRate).toFixed(4) ),
                                 },
                             ];
-        
-                            break;
+                        }
+                        
+                        newReserved += parseFloat( (standardQuantity - reserved).toFixed(4) );
+                        isCompleted = true;
+                        completedItems += 1;
+                        break;
+                    } else if ( parseFloat( (availability.quantity - availability.totalReserved).toFixed(4) ) > 0 ) {
+                        foundMaterial = true;
+
+                        const index = availability.reserves.findIndex( reserve => reserve.productionOrder.id === productionOrder.id );
+
+                        if ( index !== -1 ) {
+                            let availabilityReserves = availability.reserves;
+                            const pastReservation    = availability.reserves[index];
+
+                            pastReservation.quantity = parseFloat( ( pastReservation.quantity + (availability.quantity - availability.totalReserved)).toFixed(4) );
+                            
+                            const newTotalReserve = parseFloat( (availability.totalReserved + (availability.quantity - availability.totalReserved)).toFixed(4) );
+                            
+                            delete availabilityReserves[index];
+                            
+                            availabilityReserves[index] = pastReservation;
+
+                            await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
+                                data : {
+                                    totalReserved : newTotalReserve,
+                                    reserves      : availabilityReserves,
+                                },
+                            });
+                            
+                            newData[i].totalReserved = parseFloat( (((availability.quantity - availability.totalReserved) * materialProduct.unityConversionRate) + newData[i].totalReserved).toFixed(4) );
+
+                            const availabilityIndex = newData[i].reserves.findIndex( item => item.stock.uuid === availability.stock.uuid && item.warehouse.uuid === productionOrder.warehouse.uuid && item.batch?.uuid === availability.batch?.uuid );
+
+                            newData[i].reserves[availabilityIndex].quantity = parseFloat( (((availability.quantity - availability.totalReserved) * materialProduct.unityConversionRate) + (newData[i].reserves[availabilityIndex].quantity)).toFixed(4) )
                         } else {
-                            // Realiza acciones adicionales si es necesario
+                            await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
+                                data : {
+                                    totalReserved : parseFloat( (availability.totalReserved + (availability.quantity - availability.totalReserved)).toFixed(4) ),
+                                    reserves : [
+                                        ...availability.reserves,
+                                        {
+                                            productionOrder : productionOrder.id,
+                                            quantity        : parseFloat( (availability.quantity - availability.totalReserved).toFixed(4) ),
+                                        },
+                                    ],
+                                },
+                            });
+
+                            newData[i].totalReserved += parseFloat( ((availability.quantity - availability.totalReserved) * materialProduct.unityConversionRate).toFixed(4) );
+
+                            newData[i].reserves = [
+                                ...newData[i].reserves,
+                                {
+                                    stock     : stock.stock.id,
+                                    warehouse : productionOrder.warehouse.id,
+                                    batch     : availability.batch?.id,
+                                    quantity  : parseFloat( ((availability.quantity - availability.totalReserved) * materialProduct.unityConversionRate).toFixed(4) ),
+                                },
+                            ];
+                        }
+
+                        newReserved += parseFloat( (availability.quantity - availability.totalReserved).toFixed(4) );
+
+                        if ( newData[i].totalReserved === newData[i].quantity ) {
+                            isCompleted = true;
+                            completedItems += 1;
+                            break;
                         }
                     }
                 }
@@ -270,9 +424,75 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             }
         }
 
+        const status = completedItems === productionOrder.production.materials.length ? "booked"
+        : (reservedItems > 0 && productionOrder.status === "open") ? "partialBooked"
+        : productionOrder.status === "partialBooked" ? "partialBooked"
+        : "open";
+
+        await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+            data : {
+                status,
+                production : {
+                    ...productionOrder.production,
+                    materials : newData,
+                },
+            },
+            fields   : productionOrderFields.fields,
+            populate : productionOrderFields.populate,
+        });
+
         return {
             reservedItems,
-            newData,
         };
+    },
+
+    async unreserveMaterials( ctx ) {
+        const { uuid } = ctx.params;
+
+        const productionOrder = await findOne( uuid, PRODUCTION_ORDER_MODEL, productionOrderFields );
+
+        const reservedAvailabilities = await strapi.query( AVAILABILITY_MODEL ).findMany({
+            where : {
+                reserves : {
+                    productionOrder : productionOrder.id,
+                },
+            },
+            populate : {
+                reserves : {
+                    populate : {
+                        productionOrder : true,
+                    },
+                },
+            },
+        });
+
+        for ( const reservedAvailability of reservedAvailabilities ) {
+            await strapi.entityService.update( AVAILABILITY_MODEL, reservedAvailability.id, {
+                data : {
+                    totalReserved : reservedAvailability.totalReserved - reservedAvailability.reserves
+                        .filter( availability => availability.productionOrder.id === productionOrder.id )
+                        .reduce((acc, curr) => acc + curr.quantity, 0),
+                    reserves : reservedAvailability.reserves.filter( availability => availability.productionOrder.id !== productionOrder.id ),
+                },
+            });
+        }
+
+        const updatedProductionOrder = await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+            data : {
+                status     : "open",
+                production : {
+                    ...productionOrder.production,
+                    materials : productionOrder.production.materials.map( material => ({
+                        ...material,
+                        totalReserved : 0,
+                        reserves      : [],
+                    })),
+                },
+            },
+            fields   : productionOrderFields.fields,
+            populate : productionOrderFields.populate,
+        });
+
+        return updatedProductionOrder;
     },
 }));
