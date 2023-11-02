@@ -137,7 +137,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         });
 
         const product = await findOne( data.product, PRODUCT_MODEL, {
-            fields   : ["isActive"],
+            fields   : ["isActive", "unityConversionRate"],
             populate : {
                 inventoryInfo : true,
             },

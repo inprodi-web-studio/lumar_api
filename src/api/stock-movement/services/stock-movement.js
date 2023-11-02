@@ -5,7 +5,7 @@ const {
     UnprocessableContentError,
 } = require("../../../helpers/errors");
 
-const { STOCK_MOVEMENT_MODEL, AVAILABILITY_MODEL, BATCH_MODEL } = require("../../../constants/models");
+const { STOCK_MOVEMENT_MODEL, AVAILABILITY_MODEL, BATCH_MODEL, PRODUCTION_ORDER_MODEL } = require("../../../constants/models");
 
 const { createCoreService } = require("@strapi/strapi").factories;
 
@@ -306,7 +306,17 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             });
         }
 
-        // ? Primero se debe de agarrar el inventario de la reservación que se creó primero
+        const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
+            where : {
+                stock     : stockIn.id,
+                warehouse : warehouseIn.id,
+                product   : product.id,
+            },
+            fields   : availabilityFields.fields,
+            populate : availabilityFields.populate,
+        });
+
+        let updatedOutAvailability;
 
         if ( outAvailability.reserves?.length > 0 ) {
             let transferedQuantity = 0;
@@ -324,65 +334,174 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
                     reserves.splice( i, 1 );
 
+                    const productionOrder = await strapi.query( PRODUCTION_ORDER_MODEL ).findOne({
+                        where : {
+                            uuid : reserve.productionOrder.uuid,
+                        },
+                        populate : {
+                            production : {
+                                populate : {
+                                    materials : {
+                                        populate : {
+                                            reserves : {
+                                                populate : {
+                                                    stock     : true,
+                                                    warehouse : true,
+                                                    batch     : true,
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    });
+
+                    const materialIndex = productionOrder.production.materials.findIndex( material => material.uuid === data.product );
+
+                    const outStockReserveIndex = productionOrder.production.materials[materialIndex].reserves
+                        .findIndex( reserve => reserve.stock.uuid === data.stockOut && reserve.warehouse.uuid === data.warehouseOut && reserve.batch?.uuid === data.batch );
+
+                    const inStockReserveIndex = productionOrder.production.materials[materialIndex].reserves
+                        .findIndex( reserve => reserve.stock.uuid === data.stockIn && reserve.warehouse.uuid === data.warehouseIn && reserve.batch?.uuid === data.batch )
+
+                    if ( inStockReserveIndex !== -1 ) {
+                        productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity = 
+                            parseFloat( (productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity + ((data.quantity - transferedQuantity) * product.unityConversionRate)).toFixed(4) );
+                    } else {
+                        productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex].stock = stockIn.id;
+                    }
+
+                    productionOrder.production.materials[materialIndex].reserves.splice( outStockReserveIndex, 1 );
+
+                    await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+                        data : {
+                            production : {
+                                ...productionOrder.production,
+                                materials : productionOrder.production.materials,
+                            },
+                        },
+                    });
+
                     transferedQuantity += reserve.quantity;
 
                 } else {
+                    newReserves.push({
+                        quantity        : parseFloat((data.quantity - transferedQuantity).toFixed(4)),
+                        productionOrder : reserve.productionOrder.id,
+                    });
 
+                    reserves[i].quantity = parseFloat((reserve.quantity - (data.quantity - transferedQuantity)).toFixed(4));
+
+                    // TODO: Contemplar cuando se hace un split de stocks en las reservaciones de la orden de producción porque no se alcanza a liquidar la cantidad
+
+                    transferedQuantity += parseFloat( (data.quantity - transferedQuantity).toFixed(4) );
                 }
             }
 
-            return transferedQuantity;
-        }
-
-        const updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
-            data : {
-                quantity : outAvailability.quantity - data.quantity,
-            },
-            fields   : availabilityFields.fields,
-            populate : availabilityFields.populate,
-        });
-
-        if ( updatedOutAvailability.quantity === 0 ) {
-            await strapi.entityService.delete( AVAILABILITY_MODEL, updatedOutAvailability.id );
-        }
-
-        const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
-            where : {
-                stock     : stockIn.id,
-                warehouse : warehouseIn.id,
-                product   : product.id,
-            },
-        });
-
-        if ( inAvailability ) {
-            const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
+            updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
                 data : {
-                    quantity : inAvailability.quantity + data.quantity,
+                    quantity : outAvailability.quantity - data.quantity,
+                    reserves,
+                    totalReserved : outAvailability.totalReserved - transferedQuantity,
                 },
                 fields   : availabilityFields.fields,
                 populate : availabilityFields.populate,
             });
 
-            return {
-                out : updatedOutAvailability,
-                in  : updatedAvailability,
-            };
+            if ( updatedOutAvailability.quantity === 0 ) {
+                await strapi.entityService.delete( AVAILABILITY_MODEL, updatedOutAvailability.id );
+            }
+
+            if ( inAvailability ) {
+                for ( let i = 0; i < newReserves.length; i++ ) {
+                    const index = inAvailability.reserves?.findIndex( reserve => reserve.productionOrder.id === newReserves[i].productionOrder );
+                    if ( index !== -1 ) {
+                        inAvailability.reserves[index].quantity = parseFloat( (inAvailability.reserves[index].quantity + newReserves[i].quantity).toFixed(4) );
+    
+                        newReserves[i] = inAvailability.reserves[index];
+                    }
+                }
+
+                const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
+                    data : {
+                        quantity      : inAvailability.quantity + data.quantity,
+                        reserves      : newReserves,
+                        totalReserved : inAvailability.totalReserved + transferedQuantity,
+                    },
+                    fields   : availabilityFields.fields,
+                    populate : availabilityFields.populate,
+                });
+
+                return {
+                    out : updatedOutAvailability,
+                    in  : updatedAvailability,
+                };
+            } else {
+                const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+                    data : {
+                        stock         : stockIn.id,
+                        warehouse     : warehouseIn.id,
+                        quantity      : data.quantity,
+                        reserves      : newReserves,
+                        product       : product.id,
+                        totalReserved : transferedQuantity,
+                    },
+                    fields   : availabilityFields.fields,
+                    populate : availabilityFields.populate,
+                });
+    
+                return {
+                    out : updatedOutAvailability,
+                    in  : newAvailability,
+                };
+            }
+
+            // ? Debemos de contemplar los movimientos dentro de las reservaciones de la orden de producción también
+
         } else {
-            const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+            updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
                 data : {
-                    stock     : stockIn.id,
-                    warehouse : warehouseIn.id,
-                    quantity  : data.quantity,
-                    product   : product.id,
+                    quantity : outAvailability.quantity - data.quantity,
                 },
                 fields   : availabilityFields.fields,
                 populate : availabilityFields.populate,
             });
 
-            return {
-                out : updatedOutAvailability,
-                in  : newAvailability,
-            };
+            if ( updatedOutAvailability.quantity === 0 ) {
+                await strapi.entityService.delete( AVAILABILITY_MODEL, updatedOutAvailability.id );
+            }
+
+            if ( inAvailability ) {
+                const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
+                    data : {
+                        quantity : inAvailability.quantity + data.quantity,
+                    },
+                    fields   : availabilityFields.fields,
+                    populate : availabilityFields.populate,
+                });
+    
+                return {
+                    out : updatedOutAvailability,
+                    in  : updatedAvailability,
+                };
+            } else {
+                const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+                    data : {
+                        stock     : stockIn.id,
+                        warehouse : warehouseIn.id,
+                        quantity  : data.quantity,
+                        product   : product.id,
+                    },
+                    fields   : availabilityFields.fields,
+                    populate : availabilityFields.populate,
+                });
+    
+                return {
+                    out : updatedOutAvailability,
+                    in  : newAvailability,
+                };
+            }
         }
     },
 
