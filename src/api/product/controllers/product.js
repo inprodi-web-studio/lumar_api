@@ -13,7 +13,7 @@ const { getService } = require("@strapi/plugin-upload/server/utils");
 const { createCoreController } = require("@strapi/strapi").factories;
 
 const productFields = {
-    fields : ["uuid", "sku", "name", "description", "type", "isActive", "materials"],
+    fields : ["uuid", "sku", "name", "description", "type", "isActive", "materials", "unityConversionRate"],
     populate : {
         batches : {
             fields : ["uuid", "name", "expirationDay"],
@@ -28,6 +28,9 @@ const productFields = {
             fields : ["manageBatches", "expirationDays", "alertQuantity"],
         },
         unity : {
+            fields : ["uuid", "name"],
+        },
+        productionUnity : {
             fields : ["uuid", "name"],
         },
         categories : {
