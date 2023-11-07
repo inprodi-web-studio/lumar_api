@@ -48,7 +48,11 @@ module.exports = createCoreService( PRODUCTION_ORDER_MODEL, ({ strapi }) => ({
         data.production.product = product.id;
 
         for ( const material of data.production.materials ) {
-            const materialProduct = await findOne( material.product, PRODUCT_MODEL );
+            const materialProduct = await findOne( material.product, PRODUCT_MODEL, {
+                populate : {
+                    productionUnity : true,
+                },
+            });
 
             const index = materials.findIndex( item => item.uuid === material.product );
 
@@ -58,6 +62,7 @@ module.exports = createCoreService( PRODUCTION_ORDER_MODEL, ({ strapi }) => ({
                 materials.push({
                     uuid          : materialProduct.uuid,
                     name          : materialProduct.name,
+                    unity         : materialProduct.productionUnity.name,
                     quantity      : material.quantity * data.production.quantity,
                     totalReserved : 0,
                 });

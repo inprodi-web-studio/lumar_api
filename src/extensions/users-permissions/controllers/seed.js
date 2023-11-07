@@ -11,45 +11,45 @@ module.exports = ( plugin ) => {
     };
 
     plugin.controllers.auth["assignUnity"] = async ( ctx ) => {
-        const products = await strapi.query( PRODUCT_MODEL ).findMany({
-            where : {
-                type : {
-                    $not : "mp",
-                },
-            },
-            populate : {
-                unity : true,
-            },
-        });
+        // const products = await strapi.query( PRODUCT_MODEL ).findMany({
+        //     where : {
+        //         type : {
+        //             $not : "mp",
+        //         },
+        //     },
+        //     populate : {
+        //         unity : true,
+        //     },
+        // });
 
-        for ( const product of products ) {
-            await strapi.entityService.update( PRODUCT_MODEL, product.id, {
-               data : {
-                    productionUnity     : product.unity.id,
-                    unityConversionRate : 1,
-               },
-            });
+        // for ( const product of products ) {
+        //     await strapi.entityService.update( PRODUCT_MODEL, product.id, {
+        //        data : {
+        //             productionUnity     : product.unity.id,
+        //             unityConversionRate : 1,
+        //        },
+        //     });
             
-            let materials = [ ...product.materials ];
+        //     let materials = [ ...product.materials ];
 
-            for ( let i = 0; i < product.materials.length; i++ ) {
-                const material = product.materials[i];
+        //     for ( let i = 0; i < product.materials.length; i++ ) {
+        //         const material = product.materials[i];
 
-                const materialProduct = await findOne( material.uuid, PRODUCT_MODEL, {
-                    populate : {
-                        productionUnity : true,
-                    },
-                });
+        //         const materialProduct = await findOne( material.uuid, PRODUCT_MODEL, {
+        //             populate : {
+        //                 productionUnity : true,
+        //             },
+        //         });
 
-                materials[i].unity = materialProduct.productionUnity.name;
-            }
+        //         materials[i].unity = materialProduct.productionUnity.name;
+        //     }
 
-            await strapi.entityService.update( PRODUCT_MODEL, product.id, {
-                data : {
-                    materials,
-                },
-            });
-        }
+        //     await strapi.entityService.update( PRODUCT_MODEL, product.id, {
+        //         data : {
+        //             materials,
+        //         },
+        //     });
+        // }
 
         return "Todo correcto";
     };

@@ -23,6 +23,9 @@
     },
     "totalReserved": {
       "type": "float"
+    },
+    "unity": {
+      "type": "string"
     }
   }
 }
