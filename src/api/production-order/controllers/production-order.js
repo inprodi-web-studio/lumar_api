@@ -26,6 +26,11 @@ const productionOrderFields = {
             populate : {
                 product : {
                     fields : ["uuid", "name", "sku"],
+                    populate : {
+                        productionUnity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
                 },
                 materials : {
                     fields   : "*",
