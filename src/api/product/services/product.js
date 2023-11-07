@@ -163,6 +163,7 @@ module.exports = createCoreService( PRODUCT_MODEL, ({ strapi }) => ({
                     uuid      : material.uuid,
                     name      : material.name,
                     quantity  : material.quantity,
+                    unity     : material.unity,
                     materials : await strapi.service( PRODUCT_MODEL ).generateBom( material.uuid ),
                 });
             }

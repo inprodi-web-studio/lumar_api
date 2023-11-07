@@ -291,6 +291,9 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     if (parseFloat( (availability.quantity - availability.totalReserved).toFixed(4) ) >= parseFloat( ((standardQuantity - (reserved / materialProduct.unityConversionRate)) - newReserved).toFixed(4) )) {
                         foundMaterial = true;
 
+                        console.log( availability.reserves );
+                        console.log( productionOrder.id );
+
                         const index = availability.reserves.findIndex( reserve => reserve.productionOrder.id === productionOrder.id );
 
                         if ( index !== -1 ) {
