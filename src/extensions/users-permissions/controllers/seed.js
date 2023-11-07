@@ -41,8 +41,6 @@ module.exports = ( plugin ) => {
                     },
                 });
 
-                return materialProduct.productionUnity;
-
                 materials[i].unity = materialProduct.productionUnity.name;
             }
 
