@@ -12,11 +12,11 @@ module.exports = ( plugin ) => {
 
     plugin.controllers.auth["assignUnity"] = async ( ctx ) => {
         const products = await strapi.query( PRODUCT_MODEL ).findMany({
-            // where : {
-            //     type : {
-            //         $not : "mp",
-            //     },
-            // },
+            where : {
+                type : {
+                    $not : "mp",
+                },
+            },
             populate : {
                 unity : true,
             },
@@ -30,27 +30,27 @@ module.exports = ( plugin ) => {
                },
             });
             
-            // let materials = [ ...product.materials ];
+            let materials = [ ...product.materials ];
 
-            // for ( let i = 0; i < product.materials.length; i++ ) {
-            //     const material = product.materials[i];
+            for ( let i = 0; i < product.materials.length; i++ ) {
+                const material = product.materials[i];
 
-            //     const materialProduct = await findOne( material.uuid, PRODUCT_MODEL, {
-            //         populate : {
-            //             productionUnity : true,
-            //         },
-            //     });
+                const materialProduct = await findOne( material.uuid, PRODUCT_MODEL, {
+                    populate : {
+                        productionUnity : true,
+                    },
+                });
 
-            //     return materialProduct.productionUnity;
+                return materialProduct.productionUnity;
 
-            //     materials[i].unity = materialProduct.productionUnity.name;
-            // }
+                materials[i].unity = materialProduct.productionUnity.name;
+            }
 
-            // await strapi.entityService.update( PRODUCT_MODEL, product.id, {
-            //     data : {
-            //         materials,
-            //     },
-            // });
+            await strapi.entityService.update( PRODUCT_MODEL, product.id, {
+                data : {
+                    materials,
+                },
+            });
         }
 
         return "Todo correcto";
