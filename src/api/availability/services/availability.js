@@ -32,10 +32,17 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
                         product   : product.id,
                         warehouse : warehouse.id,
                     },
-                    select : ["uuid", "quantity", "price"],
+                    select : ["uuid", "quantity", "price", "totalReserved"],
                     populate : {
                         batch : {
                             select : ["uuid", "name", "expirationDay"],
+                        },
+                        reserves : {
+                            populate : {
+                                productionOrder : {
+                                    select : ["id"],
+                                },
+                            },
                         },
                     },
                 });
@@ -72,10 +79,17 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
                 product   : product.id,
                 warehouse : warehouse.id,
             },
-            select : ["uuid", "quantity", "price"],
+            select : ["uuid", "quantity", "price", "totalReserved"],
             populate : {
                 batch : {
                     select : ["uuid", "name", "expirationDay"],
+                },
+                reserves : {
+                    populate : {
+                        productionOrder : {
+                            fields : ["id"],
+                        },
+                    },
                 },
             },
         });

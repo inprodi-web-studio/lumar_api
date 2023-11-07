@@ -107,7 +107,11 @@ module.exports = createCoreService( PRODUCT_MODEL, ({ strapi }) => ({
         let materials = [];
 
         for ( const { product, quantity } of products ) {
-            const productObject = await findOne( product, PRODUCT_MODEL );
+            const productObject = await findOne( product, PRODUCT_MODEL, {
+                populate : {
+                    productionUnity : true,
+                },
+            });
             const hasDuplicates = products.filter( p => p.product === product ).length > 1;
 
             if ( hasDuplicates ) {
@@ -139,6 +143,7 @@ module.exports = createCoreService( PRODUCT_MODEL, ({ strapi }) => ({
                 uuid     : product,
                 name     : productObject.name,
                 quantity : quantity,
+                unity    : productObject.productionUnity.name,
             });
         }
 

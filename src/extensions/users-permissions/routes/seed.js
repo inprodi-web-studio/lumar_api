@@ -7,4 +7,13 @@ module.exports = ( plugin ) => {
             prefix : "",
         },
     });
+
+    plugin.routes["content-api"].routes.push({
+        method  : "GET",
+        path    : "/seeds/assign-unity",
+        handler : "auth.assignUnity",
+        config  : {
+            prefix : "",
+        },
+    });
 }
