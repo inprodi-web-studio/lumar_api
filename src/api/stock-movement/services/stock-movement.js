@@ -82,7 +82,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         if ( availability ) {
             const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
                 data : {
-                    quantity : availability.quantity + data.quantity,
+                    quantity : parseFloat( (availability.quantity + data.quantity).toFixed(4) ),
                 },
                 fields   : availabilityFields.fields,
                 populate : availabilityFields.populate,
@@ -127,7 +127,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             if ( availability ) {
                 const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
                     data : {
-                        quantity : availability.quantity + data.quantity,
+                        quantity : parseFloat( (availability.quantity + data.quantity).toFixed(4) ),
                     },
                     fields   : availabilityFields.fields,
                     populate : availabilityFields.populate,
@@ -211,7 +211,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
             data : {
-                quantity : availability.quantity - data.quantity,
+                quantity : parseFloat( (availability.quantity - data.quantity).toFixed(4) ),
             },
             fields   : availabilityFields.fields,
             populate : availabilityFields.populate,
@@ -266,7 +266,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
             data : {
-                quantity : availability.quantity - data.quantity,
+                quantity : parseFloat( (availability.quantity - data.quantity).toFixed(4) ),
             },
             fields   : availabilityFields.fields,
             populate : availabilityFields.populate,
@@ -401,7 +401,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
             updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
                 data : {
-                    quantity : outAvailability.quantity - data.quantity,
+                    quantity : parseFloat( (outAvailability.quantity - data.quantity).toFixed(4) ),
                     reserves,
                     totalReserved : outAvailability.totalReserved - transferedQuantity,
                 },
@@ -425,7 +425,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
                 const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
                     data : {
-                        quantity      : inAvailability.quantity + data.quantity,
+                        quantity      : parseFloat( (inAvailability.quantity + data.quantity).toFixed(4) ),
                         reserves      : newReserves,
                         totalReserved : inAvailability.totalReserved + transferedQuantity,
                     },
@@ -462,7 +462,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         } else {
             updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
                 data : {
-                    quantity : outAvailability.quantity - data.quantity,
+                    quantity : parseFloat( (outAvailability.quantity - data.quantity).toFixed(4) ),
                 },
                 fields   : availabilityFields.fields,
                 populate : availabilityFields.populate,
@@ -475,7 +475,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             if ( inAvailability ) {
                 const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
                     data : {
-                        quantity : inAvailability.quantity + data.quantity,
+                        quantity : parseFloat( (inAvailability.quantity + data.quantity).toFixed(4) ),
                     },
                     fields   : availabilityFields.fields,
                     populate : availabilityFields.populate,
@@ -547,7 +547,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         const updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
             data : {
-                quantity : outAvailability.quantity - data.quantity,
+                quantity : parseFloat( (outAvailability.quantity - data.quantity).toFixed(4) ),
             },
             fields   : availabilityFields.fields,
             populate : availabilityFields.populate,
@@ -569,7 +569,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         if ( inAvailability ) {
             const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
                 data : {
-                    quantity : inAvailability.quantity + data.quantity,
+                    quantity : parseFloat( (inAvailability.quantity + data.quantity).toFixed(4) ),
                 },
                 fields   : availabilityFields.fields,
                 populate : availabilityFields.populate,
