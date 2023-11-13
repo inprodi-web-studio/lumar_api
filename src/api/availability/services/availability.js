@@ -42,7 +42,7 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
                         reserves : {
                             populate : {
                                 productionOrder : {
-                                    select : ["id"],
+                                    select : ["id", "uuid"],
                                 },
                             },
                         },
