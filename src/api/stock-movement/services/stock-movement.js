@@ -316,185 +316,11 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             populate : availabilityFields.populate,
         });
 
-        let updatedOutAvailability;
-
         if ( outAvailability.reserves?.length > 0 ) {
-            let transferedQuantity = 0;
-            let newReserves        = [];
-            let reserves           = [...outAvailability.reserves];
-            let indexesToDelete    = [];
-
-            for ( let i = 0; i < outAvailability.reserves.length; i++ ) {
-                const reserve = outAvailability.reserves[i];
-
-                const productionOrder = await strapi.query( PRODUCTION_ORDER_MODEL ).findOne({
-                    where : {
-                        uuid : reserve.productionOrder.uuid,
-                    },
-                    populate : {
-                        production : {
-                            populate : {
-                                materials : {
-                                    populate : {
-                                        reserves : {
-                                            populate : {
-                                                stock     : true,
-                                                warehouse : true,
-                                                batch     : true,
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                });
-
-                // Encontramos el material en la orden de producción que le corresponda al producto que se está moviendo (siempre debe de existir)
-                const materialIndex = productionOrder.production.materials.findIndex( material => material.uuid === data.product );
-
-                // Encontramos si hay reservaciones para el producto en el inventario de salida de la transferencia (siempre debe de existir)
-                const outStockReserveIndex = productionOrder.production.materials[materialIndex].reserves
-                .findIndex( reserve => reserve.stock.uuid === data.stockOut && reserve.warehouse.uuid === data.warehouseOut && reserve.batch?.uuid === data.batch );
-
-                // Encontramos si hay reservaciones para el producto en el inventario de entrada de la transferencia (no necesariamente existe)
-                const inStockReserveIndex = productionOrder.production.materials[materialIndex].reserves
-                    .findIndex( reserve => reserve.stock.uuid === data.stockIn && reserve.warehouse.uuid === data.warehouseIn && reserve.batch?.uuid === data.batch );
-
-                if ( data.quantity - transferedQuantity <= 0 ) {
-                    break;
-                }
-
-                // Hay más cantidad que se está moviendo (o igual) de la que está reservada,
-                // por lo que se tiene que eliminar la reservación y pasarla a la otra disponibilidad
-                if ( parseFloat((data.quantity - transferedQuantity).toFixed(4)) >= reserve.quantity ) {
-                    newReserves.push({
-                        quantity        : reserve.quantity,
-                        productionOrder : reserve.productionOrder.id,
-                    });
-
-                    indexesToDelete.push( i );
-
-                    // Si existe el inventario de salida, tenemos que sumar la cantidad en ese inventario, ya que previamente ya estaba registrado
-
-                    // Si no existe una reservación en el inventario de salida, tenemos que cambiar el inventario para el de entrada
-                    // podemos simplemente actualizar el inventario ya que la cantidad siendo transferida, se supone que es mayor
-                    // que la cantidad total de reserva de la disponibilidad, por lo que podemos dar por hecho que vamos a mover 
-                    // la totalidad de la reserva
-                    if ( inStockReserveIndex !== -1 ) {
-                        productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity = 
-                            parseFloat( (productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity + ((data.quantity - transferedQuantity) * product.unityConversionRate)).toFixed(4) );
-
-                        productionOrder.production.materials[materialIndex].reserves.splice( outStockReserveIndex, 1 );
-                    } else {
-                        productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex].stock = stockIn.id;
-                    }
-
-                    // Nos ayuda a saber del total que se necesita transferir, cuánto ya ha sido considerado de las reservaciones
-                    transferedQuantity += reserve.quantity;
-
-                // Hay menos cantidad que se está moviendo de la que está reservada,
-                // por lo que se tiene que eliminar la reservación y pasarla a la otra disponibilidad
-                } else {
-                    newReserves.push({
-                        quantity        : parseFloat((data.quantity - transferedQuantity).toFixed(4)),
-                        productionOrder : reserve.productionOrder.id,
-                    });
-
-                    reserves[i].quantity = parseFloat((reserve.quantity - (data.quantity - transferedQuantity)).toFixed(4));
-
-                    if ( inStockReserveIndex !== -1 ) {
-                        productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity = parseFloat( (productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity + ((data.quantity - transferedQuantity) * product.unityConversionRate)).toFixed(4) );
-                    } else {
-                        productionOrder.production.materials[materialIndex].reserves.push({
-                            stock     : stockIn.id,
-                            warehouse : warehouseIn.id,
-                            quantity  : parseFloat( ((data.quantity - transferedQuantity) * product.unityConversionRate).toFixed(4) ), 
-                        });
-                    }
-
-                    productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex] = {
-                        ...productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex],
-                        quantity  : parseFloat( (productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex].quantity - ((data.quantity - transferedQuantity) * product.unityConversionRate)).toFixed(4) ), 
-                    };
-
-                    transferedQuantity += parseFloat( (data.quantity - transferedQuantity).toFixed(4) );
-                }
-
-                await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
-                    data : {
-                        production : {
-                            ...productionOrder.production,
-                            materials : productionOrder.production.materials,
-                        },
-                    },
-                });
-            }
-
-            for ( const index of indexesToDelete ) {
-                reserves.splice( index, 1 );
-            }
-
-            updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
-                data : {
-                    quantity : parseFloat( (outAvailability.quantity - data.quantity).toFixed(4) ),
-                    reserves,
-                    totalReserved : outAvailability.totalReserved - transferedQuantity,
-                },
-                fields   : availabilityFields.fields,
-                populate : availabilityFields.populate,
-            });
-
-            if ( updatedOutAvailability.quantity === 0 ) {
-                await strapi.entityService.delete( AVAILABILITY_MODEL, updatedOutAvailability.id );
-            }
-
-            if ( inAvailability ) {
-                for ( let i = 0; i < newReserves.length; i++ ) {
-                    const index = inAvailability.reserves?.findIndex( reserve => reserve.productionOrder.id === newReserves[i].productionOrder );
-
-                    if ( index !== -1 ) {
-                        inAvailability.reserves[index].quantity = parseFloat( (inAvailability.reserves[index].quantity + newReserves[i].quantity).toFixed(4) );
-    
-                        newReserves[i] = inAvailability.reserves[index];
-                    }
-                }
-
-                const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
-                    data : {
-                        quantity      : parseFloat( (inAvailability.quantity + data.quantity).toFixed(4) ),
-                        reserves      : newReserves,
-                        totalReserved : inAvailability.totalReserved + transferedQuantity,
-                    },
-                    fields   : availabilityFields.fields,
-                    populate : availabilityFields.populate,
-                });
-
-                return {
-                    out : updatedOutAvailability,
-                    in  : updatedAvailability,
-                };
-            } else {
-                const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
-                    data : {
-                        stock         : stockIn.id,
-                        warehouse     : warehouseIn.id,
-                        quantity      : data.quantity,
-                        reserves      : newReserves,
-                        product       : product.id,
-                        totalReserved : transferedQuantity,
-                    },
-                    fields   : availabilityFields.fields,
-                    populate : availabilityFields.populate,
-                });
-    
-                return {
-                    out : updatedOutAvailability,
-                    in  : newAvailability,
-                };
-            }
-
+            return await strapi.service( STOCK_MOVEMENT_MODEL ).readjustReserves( product, outAvailability, inAvailability, stockIn, warehouseIn, data, false );
         } else {
+            let updatedOutAvailability;
+            
             updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
                 data : {
                     quantity : parseFloat( (outAvailability.quantity - data.quantity).toFixed(4) ),
@@ -564,6 +390,8 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 warehouse : warehouseOut.id,
                 product   : product.id,
             },
+            fields   : availabilityFields.fields,
+            populate : availabilityFields.populate,
         });
 
         if ( !outAvailability ) {
@@ -580,18 +408,6 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             });
         }
 
-        const updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
-            data : {
-                quantity : parseFloat( (outAvailability.quantity - data.quantity).toFixed(4) ),
-            },
-            fields   : availabilityFields.fields,
-            populate : availabilityFields.populate,
-        });
-
-        if ( updatedOutAvailability.quantity === 0 ) {
-            await strapi.entityService.delete( AVAILABILITY_MODEL, updatedOutAvailability.id );
-        }
-
         const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
             where : {
                 batch     : batch.id,
@@ -599,37 +415,56 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 warehouse : warehouseIn.id,
                 product   : product.id,
             },
+            fields   : availabilityFields.fields,
+            populate : availabilityFields.populate,
         });
 
-        if ( inAvailability ) {
-            const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
-                data : {
-                    quantity : parseFloat( (inAvailability.quantity + data.quantity).toFixed(4) ),
-                },
-                fields   : availabilityFields.fields,
-                populate : availabilityFields.populate,
-            });
-
-            return {
-                out : updatedOutAvailability,
-                in  : updatedAvailability,
-            };
+        if ( outAvailability.reserves?.length > 0 ) {
+            return await strapi.service( STOCK_MOVEMENT_MODEL ).readjustReserves( product, outAvailability, inAvailability, stockIn, warehouseIn, data, batch );
         } else {
-            const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+            let updatedOutAvailability;
+            updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
                 data : {
-                    batch     : batch.id,
-                    stock     : stockIn.id,
-                    warehouse : warehouseIn.id,
-                    quantity  : data.quantity,
-                    product   : product.id,
+                    quantity : parseFloat( (outAvailability.quantity - data.quantity).toFixed(4) ),
                 },
                 fields   : availabilityFields.fields,
                 populate : availabilityFields.populate,
             });
-
-            return {
-                out : updatedOutAvailability,
-                in  : newAvailability,
+    
+            if ( updatedOutAvailability.quantity === 0 ) {
+                await strapi.entityService.delete( AVAILABILITY_MODEL, updatedOutAvailability.id );
+            }
+    
+            if ( inAvailability ) {
+                const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
+                    data : {
+                        quantity : parseFloat( (inAvailability.quantity + data.quantity).toFixed(4) ),
+                    },
+                    fields   : availabilityFields.fields,
+                    populate : availabilityFields.populate,
+                });
+    
+                return {
+                    out : updatedOutAvailability,
+                    in  : updatedAvailability,
+                };
+            } else {
+                const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+                    data : {
+                        batch     : batch.id,
+                        stock     : stockIn.id,
+                        warehouse : warehouseIn.id,
+                        quantity  : data.quantity,
+                        product   : product.id,
+                    },
+                    fields   : availabilityFields.fields,
+                    populate : availabilityFields.populate,
+                });
+    
+                return {
+                    out : updatedOutAvailability,
+                    in  : newAvailability,
+                }
             }
         }
     },
@@ -653,6 +488,191 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         if ( data.quantity < 0 ) {
             data.quantity = -data.quantity;
             return await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchExitCreation( data, warehouse, product, stock );
+        }
+    },
+
+    async readjustReserves( product, outAvailability, inAvailability, stockIn, warehouseIn, data, batch ) {
+        let transferedQuantity = 0;
+        let newReserves        = [];
+        let reserves           = [...outAvailability.reserves];
+        let indexesToDelete    = [];
+
+        let updatedOutAvailability;
+
+        for ( let i = 0; i < outAvailability.reserves.length; i++ ) {
+            const reserve = outAvailability.reserves[i];
+
+            const productionOrder = await strapi.query( PRODUCTION_ORDER_MODEL ).findOne({
+                where : {
+                    uuid : reserve.productionOrder.uuid,
+                },
+                populate : {
+                    production : {
+                        populate : {
+                            materials : {
+                                populate : {
+                                    reserves : {
+                                        populate : {
+                                            stock     : true,
+                                            warehouse : true,
+                                            batch     : true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+
+            // Encontramos el material en la orden de producción que le corresponda al producto que se está moviendo (siempre debe de existir)
+            const materialIndex = productionOrder.production.materials.findIndex( material => material.uuid === data.product );
+
+            // Encontramos si hay reservaciones para el producto en el inventario de salida de la transferencia (siempre debe de existir)
+            const outStockReserveIndex = productionOrder.production.materials[materialIndex].reserves
+            .findIndex( reserve => reserve.stock.uuid === data.stockOut && reserve.warehouse.uuid === data.warehouseOut && reserve.batch?.uuid === data.batch );
+
+            // Encontramos si hay reservaciones para el producto en el inventario de entrada de la transferencia (no necesariamente existe)
+            const inStockReserveIndex = productionOrder.production.materials[materialIndex].reserves
+                .findIndex( reserve => reserve.stock.uuid === data.stockIn && reserve.warehouse.uuid === data.warehouseIn && reserve.batch?.uuid === data.batch );
+
+            if ( data.quantity - transferedQuantity <= 0 ) {
+                break;
+            }
+
+            // Hay más cantidad que se está moviendo (o igual) de la que está reservada,
+            // por lo que se tiene que eliminar la reservación y pasarla a la otra disponibilidad
+            if ( parseFloat((data.quantity - transferedQuantity).toFixed(4)) >= reserve.quantity ) {
+                newReserves.push({
+                    quantity        : reserve.quantity,
+                    productionOrder : reserve.productionOrder.id,
+                });
+
+                indexesToDelete.push( i );
+
+                // Si existe el inventario de salida, tenemos que sumar la cantidad en ese inventario, ya que previamente ya estaba registrado
+
+                // Si no existe una reservación en el inventario de salida, tenemos que cambiar el inventario para el de entrada
+                // podemos simplemente actualizar el inventario ya que la cantidad siendo transferida, se supone que es mayor
+                // que la cantidad total de reserva de la disponibilidad, por lo que podemos dar por hecho que vamos a mover 
+                // la totalidad de la reserva
+                if ( inStockReserveIndex !== -1 ) {
+                    productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity = 
+                        parseFloat( (productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity + ((data.quantity - transferedQuantity) * product.unityConversionRate)).toFixed(4) );
+
+                    productionOrder.production.materials[materialIndex].reserves.splice( outStockReserveIndex, 1 );
+                } else {
+                    productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex].stock = stockIn.id;
+                }
+
+                // Nos ayuda a saber del total que se necesita transferir, cuánto ya ha sido considerado de las reservaciones
+                transferedQuantity += reserve.quantity;
+
+            // Hay menos cantidad que se está moviendo de la que está reservada,
+            // por lo que se tiene que eliminar la reservación y pasarla a la otra disponibilidad
+            } else {
+                newReserves.push({
+                    quantity        : parseFloat((data.quantity - transferedQuantity).toFixed(4)),
+                    productionOrder : reserve.productionOrder.id,
+                });
+                
+                console.log(newReserves);
+
+                reserves[i].quantity = parseFloat((reserve.quantity - (data.quantity - transferedQuantity)).toFixed(4));
+
+                if ( inStockReserveIndex !== -1 ) {
+                    productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity = parseFloat( (productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity + ((data.quantity - transferedQuantity) * product.unityConversionRate)).toFixed(4) );
+                } else {
+                    productionOrder.production.materials[materialIndex].reserves.push({
+                        stock     : stockIn.id,
+                        warehouse : warehouseIn.id,
+                        quantity  : parseFloat( ((data.quantity - transferedQuantity) * product.unityConversionRate).toFixed(4) ), 
+                        batch     : batch ? batch.id : null,
+                    });
+                }
+
+                productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex] = {
+                    ...productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex],
+                    quantity  : parseFloat( (productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex].quantity - ((data.quantity - transferedQuantity) * product.unityConversionRate)).toFixed(4) ), 
+                };
+
+                transferedQuantity += parseFloat( (data.quantity - transferedQuantity).toFixed(4) );
+            }
+
+            await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+                data : {
+                    production : {
+                        ...productionOrder.production,
+                        materials : productionOrder.production.materials,
+                    },
+                },
+            });
+        }
+
+        for ( const index of indexesToDelete ) {
+            reserves.splice( index, 1 );
+        }
+
+        updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
+            data : {
+                quantity : parseFloat( (outAvailability.quantity - data.quantity).toFixed(4) ),
+                reserves,
+                totalReserved : outAvailability.totalReserved - transferedQuantity,
+            },
+            fields   : availabilityFields.fields,
+            populate : availabilityFields.populate,
+        });
+
+        if ( updatedOutAvailability.quantity === 0 ) {
+            await strapi.entityService.delete( AVAILABILITY_MODEL, updatedOutAvailability.id );
+        }
+
+        if ( inAvailability ) {
+            for ( let i = 0; i < newReserves.length; i++ ) {
+                console.log( inAvailability );
+
+                const index = inAvailability.reserves?.findIndex( reserve => reserve.productionOrder.id === newReserves[i].productionOrder );
+
+                if ( index !== -1 ) {
+                    inAvailability.reserves[index].quantity = parseFloat( (inAvailability.reserves[index].quantity + newReserves[i].quantity).toFixed(4) );
+
+                    newReserves[i] = inAvailability.reserves[index];
+                }
+            }
+
+            const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
+                data : {
+                    quantity      : parseFloat( (inAvailability.quantity + data.quantity).toFixed(4) ),
+                    reserves      : newReserves,
+                    totalReserved : inAvailability.totalReserved + transferedQuantity,
+                },
+                fields   : availabilityFields.fields,
+                populate : availabilityFields.populate,
+            });
+
+            return {
+                out : updatedOutAvailability,
+                in  : updatedAvailability,
+            };
+        } else {
+            const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+                data : {
+                    stock         : stockIn.id,
+                    warehouse     : warehouseIn.id,
+                    quantity      : data.quantity,
+                    reserves      : newReserves,
+                    product       : product.id,
+                    batch         : batch ? batch.id : null,
+                    totalReserved : transferedQuantity,
+                },
+                fields   : availabilityFields.fields,
+                populate : availabilityFields.populate,
+            });
+
+            return {
+                out : updatedOutAvailability,
+                in  : newAvailability,
+            };
         }
     },
 }));
