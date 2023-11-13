@@ -91,7 +91,7 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
                 reserves : {
                     populate : {
                         productionOrder : {
-                            fields : ["id"],
+                            fields : ["id", "uuid"],
                         },
                     },
                 },
@@ -106,6 +106,7 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
 
         product.availabilities = availabilities;
         product.value          = stockValue;
+        product.reserves       = availabilities.reduce( ( sum, availability ) => sum + availability.totalReserved, 0 );
 
         delete product.purchaseInfo;
         delete product.saleInfo;
