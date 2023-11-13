@@ -326,6 +326,8 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             for ( let i = 0; i < outAvailability.reserves.length; i++ ) {
                 const reserve = outAvailability.reserves[i];
 
+                // Hay más cantidad que se está moviendo (o igual) de la que está reservada,
+                // por lo que se tiene que eliminar la reservación y pasarla a la otra disponibilidad
                 if ( parseFloat((data.quantity - transferedQuantity).toFixed(4)) >= reserve.quantity ) {
                     newReserves.push({
                         quantity        : reserve.quantity,
@@ -357,22 +359,32 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                         },
                     });
 
+                    // Encontramos el material en la orden de producción que le corresponda al producto que se está moviendo (siempre debe de existir)
                     const materialIndex = productionOrder.production.materials.findIndex( material => material.uuid === data.product );
 
+                    // Encontramos si hay reservaciones para el producto en el inventario de salida de la transferencia (siempre debe de existir)
                     const outStockReserveIndex = productionOrder.production.materials[materialIndex].reserves
                         .findIndex( reserve => reserve.stock.uuid === data.stockOut && reserve.warehouse.uuid === data.warehouseOut && reserve.batch?.uuid === data.batch );
 
+                    // Encontramos si hay reservaciones para el producto en el inventario de entrada de la transferencia (no necesariamente existe)
                     const inStockReserveIndex = productionOrder.production.materials[materialIndex].reserves
                         .findIndex( reserve => reserve.stock.uuid === data.stockIn && reserve.warehouse.uuid === data.warehouseIn && reserve.batch?.uuid === data.batch )
+
+                    // Si existe el inventario de salida, tenemos que sumar la cantidad en ese inventario, ya que previamente ya estaba registrado
+
+                    // Si no existe una reservación en el inventario de salida, tenemos que cambiar el inventario para el de entrada
+                    // podemos simplemente actualizar el inventario ya que la cantidad siendo transferida, se supone que es mayor
+                    // que la cantidad total de reserva de la disponibilidad, por lo que podemos dar por hecho que vamos a mover 
+                    // la totalidad de la reserva
 
                     if ( inStockReserveIndex !== -1 ) {
                         productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity = 
                             parseFloat( (productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity + ((data.quantity - transferedQuantity) * product.unityConversionRate)).toFixed(4) );
+
+                        productionOrder.production.materials[materialIndex].reserves.splice( outStockReserveIndex, 1 );
                     } else {
                         productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex].stock = stockIn.id;
                     }
-
-                    productionOrder.production.materials[materialIndex].reserves.splice( outStockReserveIndex, 1 );
 
                     await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
                         data : {
@@ -383,8 +395,8 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                         },
                     });
 
+                    // Nos ayuda a saber del total que se necesita transferir, cuánto ya ha sido considerado de las reservaciones
                     transferedQuantity += reserve.quantity;
-
                 } else {
                     newReserves.push({
                         quantity        : parseFloat((data.quantity - transferedQuantity).toFixed(4)),
@@ -416,6 +428,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             if ( inAvailability ) {
                 for ( let i = 0; i < newReserves.length; i++ ) {
                     const index = inAvailability.reserves?.findIndex( reserve => reserve.productionOrder.id === newReserves[i].productionOrder );
+
                     if ( index !== -1 ) {
                         inAvailability.reserves[index].quantity = parseFloat( (inAvailability.reserves[index].quantity + newReserves[i].quantity).toFixed(4) );
     
@@ -456,8 +469,6 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                     in  : newAvailability,
                 };
             }
-
-            // ? Debemos de contemplar los movimientos dentro de las reservaciones de la orden de producción también
 
         } else {
             updatedOutAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, outAvailability.id, {
