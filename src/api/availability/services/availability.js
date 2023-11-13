@@ -12,6 +12,7 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
             let productObject = {
                 ...product,
                 totalQuantity : 0,
+                totalReserved : 0,
                 totalValue    : 0,
                 stocks        : [],
             };
@@ -23,6 +24,7 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
                     name           : stock.name,
                     value          : 0,
                     quantity       : 0,
+                    reserves       : 0,
                     availabilities : [],
                 };
 
@@ -54,11 +56,13 @@ module.exports = createCoreService( AVAILABILITY_MODEL, ({ strapi }) => ({
 
                 stockObject.availabilities = availabilities;
                 stockObject.quantity       = availabilities.reduce( ( sum, availability ) => sum + availability.quantity, 0 );
+                stockObject.reserves       = availabilities.reduce( ( sum, availability ) => sum + availability.totalReserved, 0 );
 
                 productObject.stocks.push( stockObject );
 
                 productObject.totalValue    += stockObject.value;
                 productObject.totalQuantity += stockObject.quantity;
+                productObject.totalReserved += stockObject.reserves;
             }
             
             delete productObject.purchaseInfo;
