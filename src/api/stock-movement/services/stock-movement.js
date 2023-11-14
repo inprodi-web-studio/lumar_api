@@ -575,8 +575,6 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                     quantity        : parseFloat((data.quantity - transferedQuantity).toFixed(4)),
                     productionOrder : reserve.productionOrder.id,
                 });
-                
-                console.log(newReserves);
 
                 reserves[i].quantity = parseFloat((reserve.quantity - (data.quantity - transferedQuantity)).toFixed(4));
 
@@ -629,7 +627,6 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         if ( inAvailability ) {
             for ( let i = 0; i < newReserves.length; i++ ) {
-                console.log( inAvailability );
 
                 const index = inAvailability.reserves?.findIndex( reserve => reserve.productionOrder.id === newReserves[i].productionOrder );
 
@@ -643,7 +640,7 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
                 data : {
                     quantity      : parseFloat( (inAvailability.quantity + data.quantity).toFixed(4) ),
-                    reserves      : newReserves,
+                    reserves      : [...inAvailability.reserves, ...newReserves],
                     totalReserved : inAvailability.totalReserved + transferedQuantity,
                 },
                 fields   : availabilityFields.fields,
