@@ -10,5 +10,10 @@ module.exports = {
         path: "/production-orders/unreserve/:uuid",
         handler: "production-order.unreserveMaterials",
       },
+      {
+        method: "PUT",
+        path: "/production-orders/:uuid/start-production",
+        handler: "production-order.startProduction",
+      },
     ],
 }

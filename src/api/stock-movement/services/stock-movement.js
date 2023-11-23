@@ -5,7 +5,7 @@ const {
     UnprocessableContentError,
 } = require("../../../helpers/errors");
 
-const { STOCK_MOVEMENT_MODEL, AVAILABILITY_MODEL, BATCH_MODEL, PRODUCTION_ORDER_MODEL } = require("../../../constants/models");
+const { STOCK_MOVEMENT_MODEL, AVAILABILITY_MODEL, BATCH_MODEL, PRODUCTION_ORDER_MODEL, STOCKS_ORDER_MODEL } = require("../../../constants/models");
 
 const { createCoreService } = require("@strapi/strapi").factories;
 
@@ -522,6 +522,20 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                             },
                         },
                     },
+                    warehouse : true,
+                },
+            });
+
+            const stockOrder = await strapi.query( STOCKS_ORDER_MODEL ).findOne({
+                where : {
+                    warehouse : productionOrder.warehouse.id,
+                },
+                populate : {
+                    stocksOrder : {
+                        populate : {
+                            stock : true,
+                        },
+                    },
                 },
             });
 
@@ -561,8 +575,16 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                         parseFloat( (productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity + ((data.quantity - transferedQuantity) * product.unityConversionRate)).toFixed(4) );
 
                     productionOrder.production.materials[materialIndex].reserves.splice( outStockReserveIndex, 1 );
+
+                    if ( stockIn.uuid === stockOrder.stocksOrder[0].stock.uuid && productionOrder.production.materials[materialIndex].reserves.length === 1 && productionOrder.production.materials[materialIndex].totalReserved === productionOrder.production.materials[materialIndex].quantity ) {
+                        productionOrder.production.materials[materialIndex].isReady = true;
+                    }
                 } else {
                     productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex].stock = stockIn.id;
+
+                    if ( stockIn.uuid === stockOrder.stocksOrder[0].stock.uuid ) {
+                        console.log(":)");
+                    }
                 }
 
                 // Nos ayuda a saber del total que se necesita transferir, cuánto ya ha sido considerado de las reservaciones
@@ -575,8 +597,6 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                     quantity        : parseFloat((data.quantity - transferedQuantity).toFixed(4)),
                     productionOrder : reserve.productionOrder.id,
                 });
-                
-                console.log(newReserves);
 
                 reserves[i].quantity = parseFloat((reserve.quantity - (data.quantity - transferedQuantity)).toFixed(4));
 
@@ -629,8 +649,6 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         if ( inAvailability ) {
             for ( let i = 0; i < newReserves.length; i++ ) {
-                console.log( inAvailability );
-
                 const index = inAvailability.reserves?.findIndex( reserve => reserve.productionOrder.id === newReserves[i].productionOrder );
 
                 if ( index !== -1 ) {

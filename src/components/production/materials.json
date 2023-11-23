@@ -26,6 +26,10 @@
     },
     "unity": {
       "type": "string"
+    },
+    "isReady": {
+      "type": "boolean",
+      "default": false
     }
   }
 }

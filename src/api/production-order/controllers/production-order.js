@@ -94,6 +94,8 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             });
         }
 
+        let readyMaterials = 0;
+
         for ( const material of productionOrder.production?.materials ) {
             const mainStockReserved = material.reserves?.reduce((acc, reserve) => {
                 if ( reserve.stock.uuid === stockOrder.stocksOrder[0].stock.uuid ) {
@@ -102,8 +104,14 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 return acc;
             }, 0);
 
+            if ( material.isReady ) {
+                readyMaterials += 1;
+            }
+
             material.mainStockReserved = mainStockReserved;
         }
+
+        productionOrder.isReady = readyMaterials === productionOrder.production?.materials.length;
 
         return productionOrder;
     },
@@ -296,9 +304,6 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     if (parseFloat( (availability.quantity - availability.totalReserved).toFixed(4) ) >= parseFloat( ((standardQuantity - (reserved / materialProduct.unityConversionRate)) - newReserved).toFixed(4) )) {
                         foundMaterial = true;
 
-                        console.log( availability.reserves );
-                        console.log( productionOrder.id );
-
                         const index = availability.reserves.findIndex( reserve => reserve.productionOrder.id === productionOrder.id );
 
                         if ( index !== -1 ) {
@@ -321,14 +326,12 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                             });
 
                             newData[i].totalReserved = parseFloat(((material.quantity - reserved - (newReserved * materialProduct.unityConversionRate)) + newData[i].totalReserved).toFixed(4) );
+                            newData[i].isReady = j === 0;
 
                             const availabilityIndex = newData[i].reserves.findIndex( item => item.stock.uuid === availability.stock.uuid && item.warehouse.uuid === productionOrder.warehouse.uuid && item.batch?.uuid === availability.batch?.uuid );
 
                             newData[i].reserves[availabilityIndex].quantity = parseFloat(((material.quantity - reserved - (newReserved * materialProduct.unityConversionRate)) + newData[i].reserves[availabilityIndex].quantity).toFixed(4) );
                         } else {
-                            console.log("Caso de análisis");
-                            // TODO: Planchar el caso en el que se liquida la reservación con una disponibilidad que no se tiene asignada en la orden de producción (revisar newReserved, seguraemte esta mal)
-
                             await strapi.entityService.update( AVAILABILITY_MODEL, availability.id, {
                                 data : {
                                     totalReserved : parseFloat( (availability.totalReserved + (standardQuantity - reserved - newReserved)).toFixed(4) ),
@@ -343,6 +346,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                             });
 
                             newData[i].totalReserved += parseFloat( ((standardQuantity - reserved - newReserved) * materialProduct.unityConversionRate).toFixed(4) );
+                            newData[i].isReady = j === 0;
 
                             newData[i].reserves = [
                                 ...newData[i].reserves,
@@ -492,6 +496,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     materials : productionOrder.production.materials.map( material => ({
                         ...material,
                         totalReserved : 0,
+                        isReady       : false,
                         reserves      : [],
                     })),
                 },
@@ -501,5 +506,22 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
         });
 
         return updatedProductionOrder;
+    },
+
+    async startProduction( ctx ) {
+        const { uuid } = ctx.params;
+
+        const productionOrder = await findOne( uuid, PRODUCTION_ORDER_MODEL, productionOrderFields );
+
+        if ( productionOrder.status !== 'booked' ) {
+            throw new BadRequestError( "Only booked production orders can be started", {
+                key  : "production-order.notBooked",
+                path : ctx.request.path,
+            });
+        }
+
+
+
+        return uuid;
     },
 }));
