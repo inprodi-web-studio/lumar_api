@@ -597,8 +597,6 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                     quantity        : parseFloat((data.quantity - transferedQuantity).toFixed(4)),
                     productionOrder : reserve.productionOrder.id,
                 });
-                
-                console.log(newReserves);
 
                 reserves[i].quantity = parseFloat((reserve.quantity - (data.quantity - transferedQuantity)).toFixed(4));
 
