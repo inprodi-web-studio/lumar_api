@@ -420,6 +420,9 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
         });
 
         if ( outAvailability.reserves?.length > 0 ) {
+            // TODO: NO PERMITIR HACER LA TRANSFERENCIA SI LO RESERVADO YA ESTÁ EN UNA ORDEN DE PRODUCCIÓN EN PROGRESO
+            // TODO: HAY QUE AGREGAR UN CAMPO EN LA RESERVACIÓN DE LA DISPONIBILIDAD LLAMADO isBlocked PARA SABER SI YA NO SE PUEDE MOVER ESE INVENTARIO
+            // TODO: isBlocked SE PASARÁ A TRUE CUANDO SE PONGA LA ORDEN DE PRODUCCIÓN A inProgress
             return await strapi.service( STOCK_MOVEMENT_MODEL ).readjustReserves( product, outAvailability, inAvailability, stockIn, warehouseIn, data, batch );
         } else {
             let updatedOutAvailability;
@@ -572,19 +575,11 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 // la totalidad de la reserva
                 if ( inStockReserveIndex !== -1 ) {
                     productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity = 
-                        parseFloat( (productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity + ((data.quantity - transferedQuantity) * product.unityConversionRate)).toFixed(4) );
+                        parseFloat( (productionOrder.production.materials[materialIndex].reserves[inStockReserveIndex].quantity + productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex].quantity).toFixed(4) );
 
                     productionOrder.production.materials[materialIndex].reserves.splice( outStockReserveIndex, 1 );
-
-                    if ( stockIn.uuid === stockOrder.stocksOrder[0].stock.uuid && productionOrder.production.materials[materialIndex].reserves.length === 1 && productionOrder.production.materials[materialIndex].totalReserved === productionOrder.production.materials[materialIndex].quantity ) {
-                        productionOrder.production.materials[materialIndex].isReady = true;
-                    }
                 } else {
                     productionOrder.production.materials[materialIndex].reserves[outStockReserveIndex].stock = stockIn.id;
-
-                    if ( stockIn.uuid === stockOrder.stocksOrder[0].stock.uuid ) {
-                        console.log(":)");
-                    }
                 }
 
                 // Nos ayuda a saber del total que se necesita transferir, cuánto ya ha sido considerado de las reservaciones
@@ -619,6 +614,12 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 transferedQuantity += parseFloat( (data.quantity - transferedQuantity).toFixed(4) );
             }
 
+            if ( stockIn.uuid === stockOrder.stocksOrder[0].stock.uuid && productionOrder.production.materials[materialIndex].reserves.filter( reserve => (reserve.stock.uuid !== stockIn.uuid) && (reserve.stock !== stockIn.id) ).length === 0 && productionOrder.production.materials[materialIndex].totalReserved === productionOrder.production.materials[materialIndex].quantity ) {
+                productionOrder.production.materials[materialIndex].isReady = true;
+            } else {
+                productionOrder.production.materials[materialIndex].isReady = false;
+            }
+
             await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
                 data : {
                     production : {
@@ -649,8 +650,6 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         if ( inAvailability ) {
             for ( let i = 0; i < newReserves.length; i++ ) {
-                console.log( inAvailability );
-
                 const index = inAvailability.reserves?.findIndex( reserve => reserve.productionOrder.id === newReserves[i].productionOrder );
 
                 if ( index !== -1 ) {
