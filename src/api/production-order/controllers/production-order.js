@@ -9,7 +9,7 @@ const {
     BATCH_MODEL,
 } = require("../../../constants/models");
 
-const { validateAddProductionOrder, validateAssignStock} = require("../validation");
+const { validateAddProductionOrder, validateAssignStock, validateReturnStock, validateAddDeliver} = require("../validation");
 
 const { BadRequestError, NotFoundError, UnprocessableContentError } = require("../../../helpers/errors");
 
@@ -159,6 +159,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 production : {
                     ...data.production,
                     materials,
+                    delivered : 0,
                     stock : [],
                 },
                 warehouse : warehouse.id,
@@ -830,5 +831,221 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 in  : updatedInProuctionStock.production.stock,
             };
         }
+    },
+
+    async returnStock( ctx ) {
+        const data = ctx.request.body;
+        const { uuid } = ctx.params;
+
+        await validateReturnStock( data );
+
+        const productionOrder = await findOne( uuid, PRODUCTION_ORDER_MODEL, productionOrderFields );
+
+        if ( productionOrder.status !== "inProgress" ) {
+            throw new BadRequestError( "Only in progress production orders can return stock", {
+                key  : "production-order.notInProgress",
+                path : ctx.request.path,
+            });
+        }
+
+        const stockOrer = await strapi.query( STOCKS_ORDER_MODEL ).findOne({
+            where : {
+                warehouse : productionOrder.warehouse.id,
+            },
+            populate : {
+                stocksOrder : {
+                    populate : {
+                        stock : true,
+                    },
+                },
+            },
+        });
+
+        const product = await findOne( data.product, PRODUCT_MODEL, {
+            fields   : ["name", "isActive", "unityConversionRate"],
+            populate : {
+                inventoryInfo : true,
+                productionUnity : true,
+            },
+        });
+
+        if ( !product.isActive ) {
+            throw new BadRequestError( "You cannot make an entrance/adjustment of a inactive product", {
+                key  : "stock-movement.inactiveProduct",
+                path : ctx.request.path,
+            });
+        }
+
+        if ( product.inventoryInfo?.manageBatches && !data.batch ) {
+            throw new UnprocessableContentError( ["Batch is required because the product has being configured to manage batches"] );
+        }
+
+        if ( !product.inventoryInfo?.manageBatches && data.batch ) {
+            throw new UnprocessableContentError( ["Batch is not required because the product has being configured to dont manage batches"] );
+        }
+
+        let batch;
+
+        if ( product.inventoryInfo?.manageBatches ) {
+            batch = await strapi.query( BATCH_MODEL ).findOne({
+                where : {
+                    uuid    : data.batch,
+                    product : product.id,
+                },
+            });
+    
+            if ( !batch ) {
+                throw new BadRequestError( `Batch with uuid ${ data.batch } not found`, {
+                    key  : "stock-movement.batchNotFound",
+                    path : ctx.request.path,
+                });
+            }
+        }
+
+        const stockIndex = productionOrder.production?.stock?.findIndex( stock => stock.productUuid === data.product && stock.batchUuid === data.batch );
+
+        if ( stockIndex === -1 ) {
+            throw new BadRequestError( "Stock not found in production order", {
+                key  : "producion-order.stockNotFound",
+                path : ctx.request.path,
+            });
+        }
+
+        if ( data.quantity > productionOrder.production.stock[stockIndex].quantity ) {
+            throw new BadRequestError( "The quantity to return is greater than the quantity in stock", {
+                key  : "production-order.noEnoughQuantity",
+                path : ctx.request.path,
+            });
+        }
+
+        const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
+            where : {
+                stock     : stockOrer.stocksOrder[0].stock.id,
+                warehouse : productionOrder.warehouse.id,
+                product   : product.id,
+            },
+            fields   : availabilityFields.fields,
+            populate : availabilityFields.populate,
+        });
+
+        productionOrder.production.stock[stockIndex].quantity = parseFloat( ( productionOrder.production.stock[stockIndex].quantity - data.quantity ).toFixed(4) );
+
+        if ( productionOrder.production.stock[stockIndex].quantity === 0 ) {
+            productionOrder.production.stock.splice( stockIndex, 1 );
+        }
+
+        const updatedProductionOrder = await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+            data : {
+                production : {
+                    ...productionOrder.production,
+                    stock : productionOrder.production.stock,
+                },
+            },
+            fields   : productionOrderFields.fields,
+            populate : productionOrderFields.populate,
+        });
+
+        if ( inAvailability ) {
+            const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
+                data : {
+                    quantity : parseFloat( (inAvailability.quantity + (data.quantity / product.unityConversionRate)).toFixed(4) ),
+                },
+                fields   : availabilityFields.fields,
+                populate : availabilityFields.populate,
+            });
+
+            return {
+                out : updatedProductionOrder,
+                in  : updatedAvailability,
+            };
+        } else {
+            const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+                data : {
+                    stock     : stockOrer.stocksOrder[0].stock.id,
+                    warehouse : productionOrder.warehouse.id,
+                    quantity  : parseFloat( (data.quantity / product.unityConversionRate).toFixed(4) ),
+                    product   : product.id,
+                },
+                fields   : availabilityFields.fields,
+                populate : availabilityFields.populate,
+            });
+
+            return {
+                out : updatedProductionOrder,
+                in  : newAvailability,
+            };
+        }
+    },
+
+    async addDeliver( ctx ) {
+        const data     = ctx.request.body;
+        const { uuid } = ctx.params;
+
+        await validateAddDeliver( data );
+
+        const productionOrder = await findOne( uuid, PRODUCTION_ORDER_MODEL, productionOrderFields );
+        const product         = await strapi.query( PRODUCT_MODEL ).findOne({
+            where : {
+                id : productionOrder.production.product.id,
+            },
+            fields   : ["name", "isActive", "unityConversionRate"],
+            populate : {
+                inventoryInfo : true,
+                productionUnity : true,
+            },
+        });
+
+        if ( product.inventoryInfo?.manageBatches && !data.batch ) {
+            throw new UnprocessableContentError( ["Batch is required because the product has being configured to manage batches"] );
+        }
+
+        if ( !product.inventoryInfo?.manageBatches && data.batch ) {
+            throw new UnprocessableContentError( ["Batch is not required because the product has being configured to dont manage batches"] );
+        }
+
+        if ( productionOrder.status !== "inProgress" ) {
+            throw new BadRequestError( "Only in progress production orders can register deliveries", {
+                key  : "production-order.notInProgress",
+                path : ctx.request.path,
+            });
+        }
+
+        if ( productionOrder.producion?.quantiy < data.quantity ) {
+            throw new BadRequestError( "The quantity to deliver is greater than the quantity needed to be produced", {
+                key  : "production-order.exceedNeededQuantity",
+                path : ctx.request.path,
+            });
+        }
+
+        productionOrder.production.delivered = parseFloat( ( productionOrder.production.quantityDelivered + data.quantity ).toFixed(4) );
+
+        // if ( productionOrder.inventoryInfo.manageBatches ) {
+        //     const batch = await strapi.query( BATCH_MODEL ).findOne({
+        //         where : {
+        //             product : productionOrder.production.product.id,
+        //             uuid    : data.batch,
+        //         },
+        //     });
+    
+        //     if ( !batch ) {
+        //         const newBatch = await strapi.entityService.create( BATCH_MODEL, {
+        //            data : {
+        //                product       : productionOrder.production.product.id,
+        //                name          : data.batch,
+        //                expirationDay : data.expirationDay,
+        //            }, 
+        //         });
+        //     } else {
+        //         await strapi.entityService.update( BATCH_MODEL, batch.id, {
+        //             data : {
+        //                 expirationDay : data.expirationDay,
+        //             },
+        //         });
+        //     }
+        // }
+    },
+
+    async completeOrder( ctx ) {
+
     },
 }));
