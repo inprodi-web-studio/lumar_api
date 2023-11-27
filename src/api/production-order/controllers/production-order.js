@@ -185,6 +185,26 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
         return updatedProductionOrder;
     },
 
+    async delete( ctx ) {
+        const { id : uuid } = ctx.params;
+
+        const productionOrder = await findOne( uuid, PRODUCTION_ORDER_MODEL, productionOrderFields );
+
+        if ( productionOrder.status !== "open" ) {
+            throw new BadRequestError( "Only opened production orders can be deleted", {
+                key  : "production-order.notOpened",
+                path : ctx.request.path,
+            });
+        }
+
+        const deletedProductionOrder = await strapi.entityService.delete( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+            fields   : productionOrderFields.fields,
+            populate : productionOrderFields.populate,
+        });
+
+        return deletedProductionOrder;
+    },
+
     async reserveMaterials( ctx ) {
         const { uuid } = ctx.params;
 
