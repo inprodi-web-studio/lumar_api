@@ -15,6 +15,28 @@ const addProductionOrderSchema = yup.object().shape({
     }).noUnknown().strict(),
 }).noUnknown().strict();
 
+const assignStockSchema = yup.object().shape({
+    product  : yup.string().required("Product uuid is required"),
+    batch    : yup.string(),
+    quantity : yup.number().min(0, "Quantity can not be negative").required("Quantity is required"),
+}).noUnknown().strict();
+
+const returnStockSchema = yup.object().shape({
+    product  : yup.string().required("Product uuid is required"),
+    batch    : yup.string(),
+    quantity : yup.number().min(0, "Quantity can not be negative").required("Quantity is required"),
+}).noUnknown().strict();
+
+const addDeliverSchema = yup.object().shape({
+    quantiy : yup.number().min(0, "Quantity can not be negative").required("Quantity is required"),
+    batch   : yup.string(),
+    product : yup.string().required("Product uuid is required"),
+    expirationDay : yup.string(),
+}).noUnknown().strict();
+
 module.exports = {
     validateAddProductionOrder : validateYupSchema( addProductionOrderSchema ),
+    validateAssignStock        : validateYupSchema( assignStockSchema ),
+    validateReturnStock        : validateYupSchema( returnStockSchema ),
+    validateAddDeliver         : validateYupSchema( addDeliverSchema ),
 };

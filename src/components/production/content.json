@@ -14,6 +14,12 @@
     "quantity": {
       "type": "decimal"
     },
+    "delivered": {
+      "type": "decimal"
+    },
+    "stock": {
+      "type": "json"
+    },
     "materials": {
       "displayName": "materials",
       "type": "component",

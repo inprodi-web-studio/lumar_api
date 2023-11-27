@@ -15,5 +15,15 @@ module.exports = {
         path: "/production-orders/:uuid/start-production",
         handler: "production-order.startProduction",
       },
+      {
+        method: "PATCH",
+        path: "/production-orders/:uuid/assign-stock",
+        handler: "production-order.assignStock",
+      },
+      {
+        method: "PATCH",
+        path: "/production-orders/:uuid/return-stock",
+        handler: "production-order.returnStock",
+      },
     ],
 }
