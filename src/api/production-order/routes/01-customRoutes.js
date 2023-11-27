@@ -25,5 +25,15 @@ module.exports = {
         path: "/production-orders/:uuid/return-stock",
         handler: "production-order.returnStock",
       },
+      {
+        method: "PATCH",
+        path: "/production-orders/:uuid/add-deliver",
+        handler: "production-order.addDeliver",
+      },
+      {
+        method: "PUT",
+        path: "/production-orders/:uuid/complete-order",
+        handler: "production-order.completeOrder",
+      },
     ],
 }

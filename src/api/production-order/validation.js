@@ -28,9 +28,8 @@ const returnStockSchema = yup.object().shape({
 }).noUnknown().strict();
 
 const addDeliverSchema = yup.object().shape({
-    quantiy : yup.number().min(0, "Quantity can not be negative").required("Quantity is required"),
-    batch   : yup.string(),
-    product : yup.string().required("Product uuid is required"),
+    quantity      : yup.number().min(0, "Quantity can not be negative").required("Quantity is required"),
+    batch         : yup.string(),
     expirationDay : yup.string(),
 }).noUnknown().strict();
 

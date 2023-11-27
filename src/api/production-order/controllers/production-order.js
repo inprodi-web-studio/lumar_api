@@ -46,7 +46,7 @@ const productionOrderFields = {
     fields : ["uuid", "dueDate", "startDate", "status"],
     populate : {
         production : {
-            fields : ["quantity", "stock"],
+            fields : ["quantity", "stock", "delivered"],
             populate : {
                 product : {
                     fields : ["uuid", "name", "sku"],
@@ -1004,7 +1004,8 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
         await validateAddDeliver( data );
 
         const productionOrder = await findOne( uuid, PRODUCTION_ORDER_MODEL, productionOrderFields );
-        const product         = await strapi.query( PRODUCT_MODEL ).findOne({
+
+        const product = await strapi.query( PRODUCT_MODEL ).findOne({
             where : {
                 id : productionOrder.production.product.id,
             },
@@ -1030,42 +1031,189 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             });
         }
 
-        if ( productionOrder.producion?.quantiy < data.quantity ) {
+        if ( (productionOrder.production?.quantity - productionOrder.production.delivered) < data.quantity ) {
             throw new BadRequestError( "The quantity to deliver is greater than the quantity needed to be produced", {
                 key  : "production-order.exceedNeededQuantity",
                 path : ctx.request.path,
             });
         }
 
-        productionOrder.production.delivered = parseFloat( ( productionOrder.production.quantityDelivered + data.quantity ).toFixed(4) );
+        productionOrder.production.delivered = parseFloat( ( productionOrder.production.delivered + data.quantity ).toFixed(4) );
+        
+        if ( product.inventoryInfo?.manageBatches ) {
+            const batch = await strapi.query( BATCH_MODEL ).findOne({
+                where : {
+                    product : product.id,
+                    name    : data.batch,
+                },
+            });
 
-        // if ( productionOrder.inventoryInfo.manageBatches ) {
-        //     const batch = await strapi.query( BATCH_MODEL ).findOne({
-        //         where : {
-        //             product : productionOrder.production.product.id,
-        //             uuid    : data.batch,
-        //         },
-        //     });
-    
-        //     if ( !batch ) {
-        //         const newBatch = await strapi.entityService.create( BATCH_MODEL, {
-        //            data : {
-        //                product       : productionOrder.production.product.id,
-        //                name          : data.batch,
-        //                expirationDay : data.expirationDay,
-        //            }, 
-        //         });
-        //     } else {
-        //         await strapi.entityService.update( BATCH_MODEL, batch.id, {
-        //             data : {
-        //                 expirationDay : data.expirationDay,
-        //             },
-        //         });
-        //     }
-        // }
+            if ( !batch ) {
+                if ( !data.expirationDay ) {
+                    throw new UnprocessableContentError( ["Expiration day is required because the product has being configured to manage expiration days"] );
+                }
+
+                const newBatch = await strapi.entityService.create( BATCH_MODEL, {
+                   data : {
+                       product       : product.id,
+                       name          : data.batch,
+                       expirationDay : data.expirationDay,
+                   },
+                });
+
+                const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+                    data : {
+                        stock     : process.env.NODE_ENV === "production" ? 116 : 103,
+                        warehouse : productionOrder.warehouse.id,
+                        quantity  : parseFloat( (data.quantity / product.unityConversionRate).toFixed(4) ),
+                        product   : product.id,
+                        batch     : newBatch.id,
+                    },
+                    fields   : availabilityFields.fields,
+                    populate : availabilityFields.populate,
+                });
+
+                await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+                    data : {
+                        production : productionOrder.production,
+                    },
+                    fields   : productionOrderFields.fields,
+                    populate : productionOrderFields.populate,
+                });
+
+                return newAvailability;
+
+            } else {
+                if ( data.expirationDay ) {
+                    throw new UnprocessableContentError( ["Expiration day is not required because the batch already exists"] );
+                }
+
+                const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
+                    where : {
+                        batch     : batch.id,
+                        warehouse : productionOrder.warehouse.id,
+                        product   : product.id,
+                        stock     : process.env.NODE_ENV === "production" ? 116 : 103,
+                    },
+                    fields   : availabilityFields.fields,
+                    populate : availabilityFields.populate,
+                });
+
+                if ( inAvailability ) {
+                    const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
+                        data : {
+                            quantity : parseFloat( (inAvailability.quantity + (data.quantity / product.unityConversionRate)).toFixed(4) ),
+                        },
+                        fields   : availabilityFields.fields,
+                        populate : availabilityFields.populate,
+                    });
+
+                    await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+                        data : {
+                            production : productionOrder.production,
+                        },
+                        fields   : productionOrderFields.fields,
+                        populate : productionOrderFields.populate,
+                    });
+
+                    return updatedAvailability;
+                } else {
+                    const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+                        data : {
+                            stock     : process.env.NODE_ENV === "production" ? 116 : 103,
+                            warehouse : productionOrder.warehouse.id,
+                            quantity  : parseFloat( (data.quantity / product.unityConversionRate).toFixed(4) ),
+                            product   : product.id,
+                            batch     : batch.id,
+                        },
+                        fields   : availabilityFields.fields,
+                        populate : availabilityFields.populate,
+                    });
+
+                    await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+                        data : {
+                            production : productionOrder.production,
+                        },
+                        fields   : productionOrderFields.fields,
+                        populate : productionOrderFields.populate,
+                    });
+
+                    return newAvailability;
+                }
+            }
+        } else {
+            const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
+                where : {
+                    warehouse : productionOrder.warehouse.id,
+                    product   : product.id,
+                },
+                fields   : availabilityFields.fields,
+                populate : availabilityFields.populate,
+            });
+
+            if ( inAvailability ) {
+                const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
+                    data : {
+                        quantity : parseFloat( (inAvailability.quantity + (data.quantity / product.unityConversionRate)).toFixed(4) ),
+                    },
+                    fields   : availabilityFields.fields,
+                    populate : availabilityFields.populate,
+                });
+
+                await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+                    data : {
+                        production : productionOrder.production,
+                    },
+                    fields   : productionOrderFields.fields,
+                    populate : productionOrderFields.populate,
+                });
+
+                return updatedAvailability;
+            } else {
+                const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
+                    data : {
+                        stock     : process.env.NODE_ENV === "production" ? 116 : 103,
+                        warehouse : productionOrder.warehouse.id,
+                        quantity  : parseFloat( (data.quantity / product.unityConversionRate).toFixed(4) ),
+                        product   : product.id,
+                    },
+                    fields   : availabilityFields.fields,
+                    populate : availabilityFields.populate,
+                });
+
+                await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+                    data : {
+                        production : productionOrder.production,
+                    },
+                    fields   : productionOrderFields.fields,
+                    populate : productionOrderFields.populate,
+                });
+
+                return newAvailability;
+            }
+        }
     },
 
     async completeOrder( ctx ) {
+        const { uuid } = ctx.params;
 
+        const productionOrder = await findOne( uuid, PRODUCTION_ORDER_MODEL, productionOrderFields );
+
+        if ( productionOrder.status !== "inProgress" ) {
+            throw new BadRequestError( "Only in progress production orders can be completed", {
+                key  : "production-order.notInProgress",
+                path : ctx.request.path,
+            });
+        }
+
+        const updatedProductionOrder = await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
+            data : {
+                status : "closed",
+            },
+            fields   : productionOrderFields.fields,
+            populate : productionOrderFields.populate,
+        });
+
+        return updatedProductionOrder;
     },
 }));
