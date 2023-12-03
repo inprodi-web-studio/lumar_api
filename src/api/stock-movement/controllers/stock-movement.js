@@ -158,7 +158,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         await strapi.entityService.create( STOCK_MOVEMENT_MODEL, {
             data : {
-             movementType : "exit",
+             movementType : "exit-transfer",
              warehouse    : warehouseOut.id,
              stock        : stockOut.id,
              product      : product.id,
@@ -169,7 +169,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
 
         await strapi.entityService.create( STOCK_MOVEMENT_MODEL, {
             data : {
-             movementType : "entrance",
+             movementType : "entrance-transfer",
              warehouse    : warehouseIn.id,
              stock        : stockIn.id,
              product      : product.id,

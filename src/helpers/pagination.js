@@ -15,6 +15,7 @@ const pagination = async ( model, filters ) => {
             ...formattedFilters,
         },
     });
+
     const pageCount = Math.ceil(total / pageSize);
 
     const start = ((page - 1) * pageSize);

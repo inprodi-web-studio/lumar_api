@@ -20,7 +20,7 @@ const getCurrentDateFormatted = require("../../../helpers/getCurrentDateFormatte
 const { createCoreController } = require("@strapi/strapi").factories;
 
 const availabilityFields = {
-    fields   : ["uuid", "quantity", "price"],
+    fields   : ["uuid", "quantity", "price", "totalReserved"],
     populate : {
         stock : {
             fields : ["uuid", "name"],
@@ -32,7 +32,10 @@ const availabilityFields = {
             fields : ["uuid", "name", "expirationDay"],
         },
         product : {
-            fields : ["uuid", "name"],
+            fields : ["uuid", "name", "unityConversionRate"],
+            populate : {
+                productionUnity : true,
+            },
         },
         reserves : {
             populate : {
@@ -566,9 +569,61 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             });
         }
 
+        const reservedAvailabilities = await strapi.entityService.findMany(AVAILABILITY_MODEL, {
+            filters : {
+                reserves : {
+                    productionOrder : productionOrder.id,
+                },
+            },
+            ...availabilityFields,
+        });
+
+        let assignedStock = [];
+
+        for ( let i = 0; i < reservedAvailabilities.length; i++ ) {
+            const availability   = reservedAvailabilities[i];
+            const batch          = availability.batch;
+            const conversionRate = availability.product.unityConversionRate;
+            
+            const orderReserveIndex = availability.reserves.findIndex( reserve => reserve.productionOrder.uuid === productionOrder.uuid );
+            
+            const orderReserve      = availability.reserves[orderReserveIndex];
+            const quantity          = orderReserve.quantity;
+            const convertedQuantity = quantity * conversionRate;
+
+            assignedStock.push({
+                productUuid : availability.product.uuid,
+                product : availability.product.name,
+                unity : availability.product.productionUnity.name,
+                quantity : convertedQuantity,
+                ...( batch && {
+                    batch : availability.batch.name,
+                    batchUuid : availability.batch.uuid,
+                })
+            });
+
+            reservedAvailabilities[i].reserves.splice(orderReserveIndex, 1);
+            reservedAvailabilities[i].totalReserved = parseFloat( (reservedAvailabilities[i].totalReserved - quantity).toFixed(4) )
+
+            if ( reservedAvailabilities[i].quantity === 0 && reservedAvailabilities[i].totalReserved === 0 ) {
+                await strapi.entityService.delete(AVAILABILITY_MODEL, availability.id);
+            } else {
+                await strapi.entityService.update(AVAILABILITY_MODEL, availability.id, {
+                    data : {
+                        reserves : reservedAvailabilities[i].reserves,
+                        totalReserved : reservedAvailabilities[i].totalReserved,
+                    },
+                });
+            }
+        }
+
         const updatedProductionOrder = await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
             data : {
-                status : "inProgress",
+                status     : "inProgress",
+                production : {
+                    ...productionOrder.production,
+                    stock : assignedStock,
+                },
             },
             fields   : productionOrderFields.fields,
             populate : productionOrderFields.populate,

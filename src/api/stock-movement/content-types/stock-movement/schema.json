@@ -20,7 +20,8 @@
       "enum": [
         "entrance",
         "exit",
-        "transfer",
+        "entrance-transfer",
+        "exit-transfer",
         "adjust"
       ]
     },
