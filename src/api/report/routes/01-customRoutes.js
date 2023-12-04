@@ -10,5 +10,10 @@ module.exports = {
         path: "/reports/production-orders",
         handler: "report.productionOrders",
       },
+      {
+        method: "GET",
+        path: "/reports/mp-stock",
+        handler: "report.mpStock",
+      },
     ],
 }

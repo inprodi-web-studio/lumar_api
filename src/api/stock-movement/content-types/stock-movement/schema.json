@@ -22,7 +22,10 @@
         "exit",
         "entrance-transfer",
         "exit-transfer",
-        "adjust"
+        "adjust",
+        "assignation",
+        "desassignation",
+        "deliver"
       ]
     },
     "warehouse": {

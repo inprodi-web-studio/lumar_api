@@ -7,6 +7,7 @@ const {
     AVAILABILITY_MODEL,
     PRODUCTION_ORDER_MODEL,
     BATCH_MODEL,
+    STOCK_MOVEMENT_MODEL,
 } = require("../../../constants/models");
 
 const { validateAddProductionOrder, validateAssignStock, validateReturnStock, validateAddDeliver} = require("../validation");
@@ -602,8 +603,20 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 })
             });
 
+            await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
+                data : {
+                    movementType : "assignation",
+                    warehouse    : availability.warehouse.id,
+                    stock        : availability.stock.id,
+                    product      : availability.product.id,
+                    batch        : availability.batch.id,
+                    quantity     : quantity,
+                },
+            });
+
             reservedAvailabilities[i].reserves.splice(orderReserveIndex, 1);
-            reservedAvailabilities[i].totalReserved = parseFloat( (reservedAvailabilities[i].totalReserved - quantity).toFixed(4) )
+            reservedAvailabilities[i].totalReserved = parseFloat( (reservedAvailabilities[i].totalReserved - quantity).toFixed(4) );
+            reservedAvailabilities[i].quantity      = parseFloat( (reservedAvailabilities[i].quantity - quantity).toFixed(4) );
 
             if ( reservedAvailabilities[i].quantity === 0 && reservedAvailabilities[i].totalReserved === 0 ) {
                 await strapi.entityService.delete(AVAILABILITY_MODEL, availability.id);
@@ -612,6 +625,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     data : {
                         reserves : reservedAvailabilities[i].reserves,
                         totalReserved : reservedAvailabilities[i].totalReserved,
+                        quantity : reservedAvailabilities[i].quantity,
                     },
                 });
             }
@@ -709,8 +723,11 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 ...( batch && { batch : batch.id } ),
             },
             populate : {
-                batch : true,
-                reserves : {
+                batch     : true,
+                warehouse : true,
+                stock     : true,
+                product   : true,
+                reserves  : {
                     populate : {
                         productionOrder : true,
                     },
@@ -762,6 +779,17 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     },
                     fields   : availabilityFields.fields,
                     populate : availabilityFields.populate,
+                });
+
+                await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
+                    data : {
+                        movementType : "assignation",
+                        warehouse    : availability.warehouse.id,
+                        stock        : availability.stock.id,
+                        product      : availability.product.id,
+                        batch        : availability.batch.id,
+                        quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                    },
                 });
 
                 if ( updatedOutAvailability.quantity === 0 ) {
@@ -819,6 +847,17 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     populate : availabilityFields.populate,
                 });
 
+                await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
+                    data : {
+                        movementType : "assignation",
+                        warehouse    : availability.warehouse.id,
+                        stock        : availability.stock.id,
+                        product      : availability.product.id,
+                        batch        : availability.batch.id,
+                        quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                    },
+                });
+
                 if ( updatedOutAvailability.quantity === 0 ) {
                     await strapi.entityService.delete( AVAILABILITY_MODEL, updatedOutAvailability.id );
                 }
@@ -865,6 +904,17 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 },
                 fields   : availabilityFields.fields,
                 populate : availabilityFields.populate,
+            });
+
+            await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
+                data : {
+                    movementType : "assignation",
+                    warehouse    : availability.warehouse.id,
+                    stock        : availability.stock.id,
+                    product      : availability.product.id,
+                    batch        : availability.batch.id,
+                    quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                },
             });
     
             if ( updatedOutAvailability.quantity === 0 ) {
@@ -1029,6 +1079,17 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 populate : availabilityFields.populate,
             });
 
+            await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
+                data : {
+                    movementType : "desassignation",
+                    warehouse    : inAvailability.warehouse.id,
+                    stock        : inAvailability.stock.id,
+                    product      : inAvailability.product.id,
+                    batch        : inAvailability.batch.id,
+                    quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                },
+            });
+
             return {
                 out : updatedProductionOrder,
                 in  : updatedAvailability,
@@ -1043,6 +1104,17 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 },
                 fields   : availabilityFields.fields,
                 populate : availabilityFields.populate,
+            });
+
+            await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
+                data : {
+                    movementType : "desassignation",
+                    warehouse    : inAvailability.warehouse.id,
+                    stock        : inAvailability.stock.id,
+                    product      : inAvailability.product.id,
+                    batch        : inAvailability.batch.id,
+                    quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                },
             });
 
             return {
@@ -1128,6 +1200,17 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     populate : availabilityFields.populate,
                 });
 
+                await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
+                    data : {
+                        movementType : "deliver",
+                        warehouse    : newAvailability.warehouse.id,
+                        stock        : newAvailability.stock.id,
+                        product      : newAvailability.product.id,
+                        batch        : newAvailability.batch.id,
+                        quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                    },
+                });
+
                 await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
                     data : {
                         production : productionOrder.production,
@@ -1163,6 +1246,17 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         populate : availabilityFields.populate,
                     });
 
+                    await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
+                        data : {
+                            movementType : "deliver",
+                            warehouse    : inAvailability.warehouse.id,
+                            stock        : inAvailability.stock.id,
+                            product      : inAvailability.product.id,
+                            batch        : inAvailability.batch.id,
+                            quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                        },
+                    });
+
                     await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
                         data : {
                             production : productionOrder.production,
@@ -1184,6 +1278,8 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         fields   : availabilityFields.fields,
                         populate : availabilityFields.populate,
                     });
+
+                    
 
                     await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
                         data : {
@@ -1215,6 +1311,17 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     populate : availabilityFields.populate,
                 });
 
+                await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
+                    data : {
+                        movementType : "deliver",
+                        warehouse    : inAvailability.warehouse.id,
+                        stock        : inAvailability.stock.id,
+                        product      : inAvailability.product.id,
+                        batch        : inAvailability.batch.id,
+                        quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                    },
+                });
+
                 await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
                     data : {
                         production : productionOrder.production,
@@ -1234,6 +1341,17 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     },
                     fields   : availabilityFields.fields,
                     populate : availabilityFields.populate,
+                });
+
+                await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
+                    data : {
+                        movementType : "deliver",
+                        warehouse    : newAvailability.warehouse.id,
+                        stock        : newAvailability.stock.id,
+                        product      : newAvailability.product.id,
+                        batch        : newAvailability.batch.id,
+                        quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                    },
                 });
 
                 await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {

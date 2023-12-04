@@ -1,5 +1,6 @@
 "use strict";
 
+const { AVAILABILITY_MODEL, PRODUCT_MODEL } = require("../../../constants/models");
 const findMany = require("../../../helpers/findMany");
 const parseQueryFilters = require("../../../helpers/parseQueryFilters");
 
@@ -8,7 +9,30 @@ const { createCoreController } = require("@strapi/strapi").factories;
 module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     async stockMovements(ctx) {
         const filters = ctx.query.filters;
-        const stockMovements = await findMany("api::stock-movement.stock-movement", {}, {});
+
+        const stockMovements = await findMany("api::stock-movement.stock-movement", {
+            fields : ["movementType", "type", "price", "quantity", "createdAt"],
+            populate : {
+                product : {
+                    fields : ["uuid", "name"],
+                    populate : {
+                        unity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
+                },
+                stock : {
+                    fields : ["uuid", "name"],
+                },
+                batch : {
+                    fields : ["uuid", "name"],
+                },
+            },
+        }, {
+            movementType : {
+                $in : ["entrance", "exit", "entrance-transfer", "exit-transfer", "adjust"],
+            },
+        });
 
         const entries = await strapi.query("api::stock-movement.stock-movement").count({
             where : {
@@ -50,7 +74,24 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
     async productionOrders(ctx) {
         const filters = ctx.query.filters;
-        const productionOrders = await findMany("api::production-order.production-order", {}, {});
+        const productionOrders = await findMany("api::production-order.production-order", {
+            fields : ["id", "uuid", "dueDate", "startDate", "createdAt"],
+            populate : {
+                production : {
+                    fields : ["quantity", "delivered"],
+                    populate : {
+                        product : {
+                            fields : ["uuid", "name"],
+                            populate : {
+                                productionUnity : {
+                                    fields : ["uuid", "name"],
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
 
         const open = await strapi.query("api::production-order.production-order").count({
             where : {
@@ -103,5 +144,24 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         productionOrders.stats.cancelled = cancelled;
 
         return productionOrders;
+    },
+
+    async mpStock( ctx ) {
+        const filters = ctx.query.filters;
+
+        const products = await findMany( PRODUCT_MODEL, {
+            fields : ["uuid", "name"],
+            populate : {
+                unity : {
+                    fields : ["uuid", "name"],
+                },
+            },
+        }, {
+            type : "mp",
+        });
+
+        await strapi.service("api::report.report").addProductStats( products.data );
+
+        return products;
     },
 }));

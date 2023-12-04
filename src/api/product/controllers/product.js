@@ -156,14 +156,14 @@ module.exports = createCoreController( PRODUCT_MODEL, ({ strapi }) => ({
 
         await validateAddProduct( data );
 
-        if ( data.type === "mp" && data.materials.length > 0 ) {
+        if ( data.type === "mp" && data.materials?.length > 0 ) {
             throw new BadRequestError( "mp products cannot have materials", {
                 key  : "product.mpWithMaterials",
                 path : ctx.request.path,
             });
         }
 
-        if ( data.type !== "mp" && data.materials.length <= 0 ) {
+        if ( data.type !== "mp" && data.materials?.length <= 0 ) {
             throw new BadRequestError( "Products that are not mp must have at least one material specified", {
                 key  : "product.noMaterials",
                 path : ctx.request.path,
