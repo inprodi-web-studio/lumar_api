@@ -609,7 +609,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     warehouse    : availability.warehouse.id,
                     stock        : availability.stock.id,
                     product      : availability.product.id,
-                    batch        : availability.batch.id,
+                    batch        : availability.batch?.id,
                     quantity     : quantity,
                 },
             });
@@ -787,7 +787,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         warehouse    : availability.warehouse.id,
                         stock        : availability.stock.id,
                         product      : availability.product.id,
-                        batch        : availability.batch.id,
+                        batch        : availability.batch?.id,
                         quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                     },
                 });
@@ -853,7 +853,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         warehouse    : availability.warehouse.id,
                         stock        : availability.stock.id,
                         product      : availability.product.id,
-                        batch        : availability.batch.id,
+                        batch        : availability.batch?.id,
                         quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                     },
                 });
@@ -912,7 +912,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     warehouse    : availability.warehouse.id,
                     stock        : availability.stock.id,
                     product      : availability.product.id,
-                    batch        : availability.batch.id,
+                    batch        : availability.batch?.id,
                     quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                 },
             });
@@ -1085,7 +1085,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     warehouse    : inAvailability.warehouse.id,
                     stock        : inAvailability.stock.id,
                     product      : inAvailability.product.id,
-                    batch        : inAvailability.batch.id,
+                    batch        : inAvailability.batch?.id,
                     quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                 },
             });
@@ -1112,7 +1112,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                     warehouse    : inAvailability.warehouse.id,
                     stock        : inAvailability.stock.id,
                     product      : inAvailability.product.id,
-                    batch        : inAvailability.batch.id,
+                    batch        : inAvailability.batch?.id,
                     quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                 },
             });
@@ -1206,7 +1206,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         warehouse    : newAvailability.warehouse.id,
                         stock        : newAvailability.stock.id,
                         product      : newAvailability.product.id,
-                        batch        : newAvailability.batch.id,
+                        batch        : newAvailability.batch?.id,
                         quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                     },
                 });
@@ -1252,7 +1252,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                             warehouse    : inAvailability.warehouse.id,
                             stock        : inAvailability.stock.id,
                             product      : inAvailability.product.id,
-                            batch        : inAvailability.batch.id,
+                            batch        : inAvailability.batch?.id,
                             quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                         },
                     });
@@ -1317,7 +1317,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         warehouse    : inAvailability.warehouse.id,
                         stock        : inAvailability.stock.id,
                         product      : inAvailability.product.id,
-                        batch        : inAvailability.batch.id,
+                        batch        : inAvailability.batch?.id,
                         quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                     },
                 });
@@ -1349,7 +1349,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         warehouse    : newAvailability.warehouse.id,
                         stock        : newAvailability.stock.id,
                         product      : newAvailability.product.id,
-                        batch        : newAvailability.batch.id,
+                        batch        : newAvailability.batch?.id,
                         quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                     },
                 });
