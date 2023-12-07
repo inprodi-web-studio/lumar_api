@@ -75,7 +75,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     async productionOrders(ctx) {
         const filters = ctx.query.filters;
         const productionOrders = await findMany("api::production-order.production-order", {
-            fields : ["id", "uuid", "dueDate", "startDate", "createdAt"],
+            fields : ["id", "uuid", "status", "dueDate", "startDate", "createdAt"],
             populate : {
                 production : {
                     fields : ["quantity", "delivered"],
