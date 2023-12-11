@@ -224,8 +224,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                         name : availability.product.unity.name,
                     },
                     batch : {
-                        uuid : availability.batch.uuid,
-                        name : availability.batch.name,
+                        uuid : availability.batch?.uuid,
+                        name : availability.batch?.name,
                     },
                     stock : {
                         uuid : availability.stock.uuid,
