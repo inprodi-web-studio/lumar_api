@@ -1222,10 +1222,6 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 return newAvailability;
 
             } else {
-                if ( data.expirationDay ) {
-                    throw new UnprocessableContentError( ["Expiration day is not required because the batch already exists"] );
-                }
-
                 const inAvailability = await strapi.query( AVAILABILITY_MODEL ).findOne({
                     where : {
                         batch     : batch.id,
