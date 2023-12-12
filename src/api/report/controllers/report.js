@@ -147,8 +147,6 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     },
 
     async mpStock( ctx ) {
-        const filters = ctx.query.filters;
-
         const products = await findMany( PRODUCT_MODEL, {
             fields : ["uuid", "name"],
             populate : {
@@ -163,5 +161,84 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         await strapi.service("api::report.report").addProductStats( products.data );
 
         return products;
+    },
+
+    async assortmentOrders( ctx ) {
+        const availabilities = await findMany( AVAILABILITY_MODEL, {
+            fields   : ["uuid"],
+            populate : {
+                product : {
+                    fields : ["uuid", "name"],
+                    populate : {
+                        unity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
+                },
+                batch : {
+                    fields : ["uuid", "name"],
+                },
+                reserves : {
+                    fields : ["quantity"],
+                    populate : {
+                        productionOrder : {
+                            fields : ["uuid"],
+                        },
+                    },
+                },
+                stock : {
+                    fields : ["uuid", "name"],
+                }
+            },
+        }, {
+            stock : {
+                uuid : {
+                    $not : process.env.NODE_ENV === "production" ? "c0c0f4e8-a7ba-4776-a62d-f183cc1d10ae" : "5a438390-342c-4537-a532-e7988e6ce7f0",
+                },
+            },
+            reserves : {
+                productionOrder : {
+                    $not : null,
+                },
+            },
+        });
+
+        let parsedData = [];
+
+        for ( let i = 0; i < availabilities.data.length; i++ ) {
+            const availability = availabilities.data[i];
+
+            for ( let j = 0; j < availability.reserves.length; j++ ) {
+                const reserve = availability.reserves[j];
+
+                parsedData.push({
+                    product : {
+                        name : availability.product.name,
+                    },
+                    quantity : reserve.quantity,
+                    productionOrder : {
+                        uuid : reserve.productionOrder.uuid,
+                        id   : reserve.productionOrder.id,
+                    },
+                    unity : {
+                        name : availability.product.unity.name,
+                    },
+                    batch : {
+                        uuid : availability.batch?.uuid,
+                        name : availability.batch?.name,
+                    },
+                    stock : {
+                        uuid : availability.stock.uuid,
+                        name : availability.stock.name,
+                    },
+                });
+            }
+
+        }
+
+        return {
+            data : parsedData,
+            meta : availabilities.meta,
+        };
     },
 }));
