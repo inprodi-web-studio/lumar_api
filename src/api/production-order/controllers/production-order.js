@@ -1375,9 +1375,37 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             });
         }
 
+        let productionLoss = [];
+
+        for ( let i = 0; i < productionOrder.production.materials.length; i++ ) {
+            const material = productionOrder.production.materials[i];
+
+            const productStock    = productionOrder.production.stock.filter( stock => stock.productUuid === material.uuid );
+            const productQuantity = productStock.reduce( ( accumulator, currentValue ) => accumulator + currentValue.quantity, 0 );
+            const lossQuantity    = parseFloat( (productQuantity - material.quantity).toFixed(4) );
+
+            if ( lossQuantity === 0 ) {
+                continue;
+            }
+
+            // ? Cómo se va a calcular el costo de la merma?
+            // ? Hay que convertir unidades?
+
+            // const materialObject = await findOne( material.uuid, PRODUCT_MODEL, { populate : { purchaseInfo : true } });
+
+            productionLoss.push({
+                productUuid : material.uuid,
+                product     : material.name,
+                quantity    : parseFloat( (productQuantity - material.quantity).toFixed(4) ),
+                unity       : material.unity,
+                // cost        : parseFloat( (materialObject.purchaseInfo.purchasePrice * lossQuantity).toFixed(4) ),
+            });
+        }
+
         const updatedProductionOrder = await strapi.entityService.update( PRODUCTION_ORDER_MODEL, productionOrder.id, {
             data : {
                 status : "closed",
+                // loss   : productionLoss,
             },
             fields   : productionOrderFields.fields,
             populate : productionOrderFields.populate,

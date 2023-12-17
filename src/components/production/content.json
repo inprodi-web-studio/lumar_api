@@ -20,6 +20,9 @@
     "stock": {
       "type": "json"
     },
+    "loss": {
+      "type": "json"
+    },
     "materials": {
       "displayName": "materials",
       "type": "component",
