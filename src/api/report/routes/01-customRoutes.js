@@ -20,5 +20,15 @@ module.exports = {
         path: "/reports/assortment-orders",
         handler: "report.assortmentOrders",
       },
+      {
+        method: "GET",
+        path: "/reports/loss",
+        handler: "report.loss",
+      },
+      {
+        method: "GET",
+        path: "/reports/margins",
+        handler: "report.margins",
+      },
     ],
 }
