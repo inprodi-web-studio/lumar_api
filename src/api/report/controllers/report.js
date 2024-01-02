@@ -372,7 +372,9 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         for ( let i = 0; i < productionOrders.length; i++ ) {
             const order = productionOrders[i];
 
-            if ( products.findIndex( product => product.uuid === order.production.product.uuid ) > -1 ) {
+            let productIndex = products.findIndex( product => product.uuid === order.production.product.uuid ) > -1 ? products.findIndex( product => product.uuid === order.production.product.uuid ) : null;
+
+            if ( productIndex !== null ) {
                 continue;
             }
 
@@ -384,6 +386,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 plannedCost : 0,
             });
 
+            productIndex = products.findIndex( product => product.uuid === order.production.product.uuid );
+
             for ( const material of order.production.materials ) {
                 const index = movements.findIndex( movement => movement.uuid === material.uuid );
 
@@ -391,9 +395,9 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
                 const averageCost = movements[index].averageCost;
                 const quantity    = parseFloat( (material.quantity / movements[index].unityConversionRate).toFixed(4) );
-                const currentCost = parseFloat( (products[i].plannedCost || 0).toFixed(4) );
+                const currentCost = parseFloat( (products[productIndex].plannedCost || 0).toFixed(4) );
 
-                products[i].plannedCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.quantity)).toFixed(4));
+                products[productIndex].plannedCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.quantity)).toFixed(4));
             }
 
             for ( const stock of order.production.stock ) {
@@ -403,9 +407,9 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
                 const averageCost = movements[index].averageCost;
                 const quantity    = parseFloat( (stock.quantity / movements[index].unityConversionRate).toFixed(4) );
-                const currentCost = parseFloat( (products[i].realCost || 0).toFixed(4) );
+                const currentCost = parseFloat( (products[productIndex].realCost || 0).toFixed(4) );
 
-                products[i].realCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.quantity)).toFixed(4));
+                products[productIndex].realCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.quantity)).toFixed(4));
             }
         }
 
