@@ -372,6 +372,10 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         for ( let i = 0; i < productionOrders.length; i++ ) {
             const order = productionOrders[i];
 
+            if ( products.findIndex( product => product.uuid === order.production.product.uuid ) > -1 ) {
+                continue;
+            }
+
             products.push({
                 name        : order.production.product.name,
                 uuid        : order.production.product.uuid,
