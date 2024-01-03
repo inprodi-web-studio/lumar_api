@@ -1143,10 +1143,6 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             },
         });
 
-        if ( product.inventoryInfo?.manageBatches && !data.batch ) {
-            throw new UnprocessableContentError( ["Batch is required because the product has being configured to manage batches"] );
-        }
-
         if ( !product.inventoryInfo?.manageBatches && data.batch ) {
             throw new UnprocessableContentError( ["Batch is not required because the product has being configured to dont manage batches"] );
         }
@@ -1175,11 +1171,9 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 },
             });
 
-            if ( !batch ) {
-                if ( !data.expirationDay ) {
-                    throw new UnprocessableContentError( ["Expiration day is required because the product has being configured to manage expiration days"] );
-                }
+            console.log( batch );
 
+            if ( !batch ) {
                 const newBatch = await strapi.entityService.create( BATCH_MODEL, {
                    data : {
                        product       : product.id,
