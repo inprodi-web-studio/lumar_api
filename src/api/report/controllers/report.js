@@ -4,6 +4,9 @@ const { AVAILABILITY_MODEL, PRODUCT_MODEL, STOCK_MOVEMENT_MODEL, PRODUCTION_ORDE
 const findMany = require("../../../helpers/findMany");
 const parseQueryFilters = require("../../../helpers/parseQueryFilters");
 
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const send = require('koa-send');
+
 const { createCoreController } = require("@strapi/strapi").factories;
 
 module.exports = createCoreController("api::report.report", ({ strapi }) => ({
@@ -93,6 +96,95 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             },
             stats : stockMovements.stats,
         };
+    },
+
+    async downloadStockMovements(ctx) {
+        const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
+
+        if ( !query.filters?.movementType ) {
+            query.filters = {
+                ...query.filters,
+                movementType : {
+                    $in : ["entrance", "exit", "entrance-transfer", "exit-transfer", "adjust"],
+                },
+            };
+        }
+
+        const stockMovements = await strapi.service("api::stock-movement.stock-movement").find({
+            ...query,
+            fields : ["movementType", "type", "price", "quantity", "createdAt"],
+            populate : {
+                product : {
+                    fields : ["uuid", "name"],
+                    populate : {
+                        unity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
+                },
+                stock : {
+                    fields : ["uuid", "name"],
+                },
+                batch : {
+                    fields : ["uuid", "name"],
+                },
+            },
+            pagination : {
+                page : 1,
+                pageSize : 100000,
+            },
+        });
+
+        const parsedData = stockMovements.results.map((stockMovement) => {
+            return {
+                "product"  : stockMovement.product?.name ?? "-",
+                "movement" : stockMovement.movementType ?? "-",
+                "type"     : stockMovement.type ?? "-",
+                "stock"    : stockMovement.stock?.name ?? "-",
+                "batch"    : stockMovement.batch?.name ?? "-",
+                "quantity" : stockMovement.quantity ?? "-",
+                "unity"    : stockMovement.product?.unity?.name ?? "-",
+                "date"     : stockMovement.createdAt,
+            }
+        });
+
+        const csvWriter = createCsvWriter({
+            path: 'movimientos_inventario.csv',
+            header: [
+                { id: 'product', title: 'Producto' },
+                { id: 'movement', title: 'Movimiento' },
+                { id: 'type', title: 'Tipo' },
+                { id: 'stock', title: 'Stock' },
+                { id: 'batch', title: 'Lote' },
+                { id: 'quantity', title: 'Cantidad' },
+                { id: 'unity', title: 'Unidad' },
+                { id: 'date', title: 'Fecha' },
+            ]
+        });
+
+        await csvWriter.writeRecords(parsedData);
+
+        ctx.attachment('movimientos_inventario.csv');
+
+        await send(ctx, 'movimientos_inventario.csv');
     },
 
     async productionOrders(ctx) {
@@ -185,7 +277,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         };
     },
 
-    async mpStock( ctx ) {
+    async downloadProductionOrders(ctx) {
         const { query } = ctx;
 
         if ( query.page ) {
@@ -208,13 +300,92 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
         query.filters = {
             ...query.filters,
-            type : "mp",
-            ...( query.search && {
-                name : {
-                    $contains : query.search,
-                },
-            })
+            status : "closed",
         };
+
+        const productionOrders = await strapi.service("api::production-order.production-order").find({
+            ...query,
+            fields : ["id", "uuid", "status", "dueDate", "startDate", "createdAt"],
+            populate : {
+                production : {
+                    fields : ["quantity", "delivered"],
+                    populate : {
+                        product : {
+                            fields : ["uuid", "name"],
+                            populate : {
+                                productionUnity : {
+                                    fields : ["uuid", "name"],
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            pagination : {
+                page : 1,
+                pageSize : 10000,
+            },
+        });
+
+        const statusDictionary = {
+            open : "Abierta",
+            partialBooked : "Parcialmente Reservada",
+            booked : "Reservada",
+            inProgress : "En Progreso",
+            closed : "Cerrada",
+            cancelled : "Cancelada",
+        };
+
+        const parsedData = productionOrders.results.map( ( productionOrder ) =>( {
+           "order"     : productionOrder.id,
+           "product"   : productionOrder.production?.product?.name ?? "-",
+           "quantity"  : productionOrder.production.quantity,
+           "delivered" : productionOrder.production?.delivered ?? 0,
+           "progress"  : productionOrder.production?.delivered / productionOrder.production?.quantity ?? 0,
+           "status"    : statusDictionary[ productionOrder.status ] ?? "-",
+            "date"     : productionOrder.createdAt,
+        }));
+
+        const csvWriter = createCsvWriter({
+            path: 'ordenes_producción.csv',
+            header: [
+                {id: 'order', title: 'Orden'},
+                {id: 'product', title: 'Producto'},
+                {id: 'quantity', title: 'Cantidad'},
+                {id: 'delivered', title: 'Entregado'},
+                {id: 'progress', title: 'Progreso'},
+                {id: 'status', title: 'Estado'},
+                {id: 'date', title: 'Fecha'},
+            ]
+        });
+
+        await csvWriter.writeRecords(parsedData);
+
+        ctx.attachment('ordenes_producción.csv');
+
+        await send(ctx, 'ordenes_producción.csv');
+    },
+
+    async mpStock( ctx ) {
+        const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
 
         const products = await strapi.service("api::product.product").find({
             ...query,
@@ -223,7 +394,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 unity : {
                     fields : ["uuid", "name"],
                 },
-            }
+            },
         });
 
         await strapi.service("api::report.report").addProductStats( products.results );
