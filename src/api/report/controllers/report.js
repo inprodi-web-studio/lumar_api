@@ -15,6 +15,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 page : query.page,
                 ...query.pagination,
             }
+
+            delete query.page;
         }
 
         if ( query.limit ) {
@@ -22,6 +24,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 ...query.pagination,
                 pageSize : query.limit,
             }
+
+            delete query.limit;
         }
 
         if ( !query.filters?.movementType ) {
@@ -99,6 +103,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 page : query.page,
                 ...query.pagination,
             }
+
+            delete query.page;
         }
 
         if ( query.limit ) {
@@ -106,6 +112,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 ...query.pagination,
                 pageSize : query.limit,
             }
+
+            delete query.limit;
         }
 
         query.filters = {
@@ -185,6 +193,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 page : query.page,
                 ...query.pagination,
             }
+
+            delete query.page;
         }
 
         if ( query.limit ) {
@@ -192,6 +202,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 ...query.pagination,
                 pageSize : query.limit,
             }
+
+            delete query.limit;
         }
 
         query.filters = {
