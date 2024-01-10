@@ -10,6 +10,20 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     async stockMovements(ctx) {
         const { query } = ctx;
 
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+        }
+
         if ( !query.filters?.movementType ) {
             query.filters = {
                 ...query.filters,
@@ -79,6 +93,20 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
     async productionOrders(ctx) {
         const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+        }
 
         query.filters = {
             ...query.filters,
@@ -151,6 +179,20 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
     async mpStock( ctx ) {
         const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+        }
 
         query.filters = {
             ...query.filters,
