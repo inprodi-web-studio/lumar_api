@@ -322,6 +322,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         const { query } = ctx;
 
         delete query.page;
+        delete query.limit;
 
         const movementsRaw = await strapi.db.connection.raw(`
             SELECT 
@@ -409,6 +410,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         const { query } = ctx;
 
         delete query.page;
+        delete query.limit;
 
         const movementsRaw = await strapi.db.connection.raw(`
             SELECT 
