@@ -321,6 +321,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     async loss( ctx ) {
         const { query } = ctx;
 
+        delete query.page;
+
         const movementsRaw = await strapi.db.connection.raw(`
             SELECT 
                 p.uuid, 
@@ -405,6 +407,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
     async margins( ctx ) {
         const { query } = ctx;
+
+        delete query.page;
 
         const movementsRaw = await strapi.db.connection.raw(`
             SELECT 
