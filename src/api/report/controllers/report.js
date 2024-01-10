@@ -8,9 +8,19 @@ const { createCoreController } = require("@strapi/strapi").factories;
 
 module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     async stockMovements(ctx) {
-        const filters = ctx.query.filters;
+        const { query } = ctx;
 
-        const stockMovements = await findMany("api::stock-movement.stock-movement", {
+        if ( !query.filters?.movementType ) {
+            query.filters = {
+                ...query.filters,
+                movementType : {
+                    $in : ["entrance", "exit", "entrance-transfer", "exit-transfer", "adjust"],
+                },
+            };
+        }
+
+        const stockMovements = await strapi.service("api::stock-movement.stock-movement").find({
+            ...query,
             fields : ["movementType", "type", "price", "quantity", "createdAt"],
             populate : {
                 product : {
@@ -28,40 +38,26 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                     fields : ["uuid", "name"],
                 },
             },
-        }, {
-            movementType : {
-                $in : ["entrance", "exit", "entrance-transfer", "exit-transfer", "adjust"],
-            },
         });
 
-        const entries = await strapi.query("api::stock-movement.stock-movement").count({
-            where : {
-                ...parseQueryFilters( filters ),
-                movementType : "entrance",
-            },
-        });
+        query.filters = {
+            ...query.filters,
+            movementType : "entrance",
+        }
 
-        const exits = await strapi.query("api::stock-movement.stock-movement").count({
-            where : {
-                ...parseQueryFilters( filters ),
-                movementType : "exit",
-            },
-        });
+        const entries = await strapi.query("api::stock-movement.stock-movement").count( query );
 
-        const transfers = await strapi.query("api::stock-movement.stock-movement").count({
-            where : {
-                ...parseQueryFilters( filters ),
-                movementType : "exit-transfer",
-            },
-        });
+        query.filters.movementType = "exit";
 
-        const adjusts = await strapi.query("api::stock-movement.stock-movement").count({
-            where : {
-                ...parseQueryFilters( filters ),
-                movementType : "adjust",
-            },
-        });
+        const exits = await strapi.query("api::stock-movement.stock-movement").count( query );
 
+        query.filters.movementType = "entrance-transfer";
+
+        const transfers = await strapi.query("api::stock-movement.stock-movement").count( query );
+
+        query.filters.movementType = "adjust";
+
+        const adjusts = await strapi.query("api::stock-movement.stock-movement").count( query );
         
         stockMovements.stats = {};
         stockMovements.stats.entries = entries;
@@ -69,12 +65,28 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         stockMovements.stats.transfers = transfers;
         stockMovements.stats.adjusts = adjusts;
 
-        return stockMovements;
+        return {
+            data : stockMovements.results,
+            meta : {
+                totalDocs : stockMovements.pagination.total,
+                limit : stockMovements.pagination.pageSize,
+                page : stockMovements.pagination.page,
+                totalPages : stockMovements.pagination.pageCount,
+            },
+            stats : stockMovements.stats,
+        };
     },
 
     async productionOrders(ctx) {
-        const filters = ctx.query.filters;
-        const productionOrders = await findMany("api::production-order.production-order", {
+        const { query } = ctx;
+
+        query.filters = {
+            ...query.filters,
+            status : "closed",
+        };
+
+        const productionOrders = await strapi.service("api::production-order.production-order").find({
+            ...query,
             fields : ["id", "uuid", "status", "dueDate", "startDate", "createdAt"],
             populate : {
                 production : {
@@ -93,47 +105,29 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             },
         });
 
-        const open = await strapi.query("api::production-order.production-order").count({
-            where : {
-                ...parseQueryFilters( filters ),
-                status : "open",
-            },
-        });
+        query.filters.status = "open";
 
-        const partialBooked = await strapi.query("api::production-order.production-order").count({
-            where : {
-                ...parseQueryFilters( filters ),
-                status : "partialBooked",
-            },
-        });
+        const open = await strapi.query("api::production-order.production-order").count( query );
 
-        const booked = await strapi.query("api::production-order.production-order").count({
-            where : {
-                ...parseQueryFilters( filters ),
-                status : "booked",
-            },
-        });
+        query.filters.status = "partialBooked";
 
-        const inProgress = await strapi.query("api::production-order.production-order").count({
-            where : {
-                ...parseQueryFilters( filters ),
-                status : "inProgress",
-            },
-        });
+        const partialBooked = await strapi.query("api::production-order.production-order").count( query );
 
-        const closed = await strapi.query("api::production-order.production-order").count({
-            where : {
-                ...parseQueryFilters( filters ),
-                status : "closed",
-            },
-        });
+        query.filters.status = "booked";
 
-        const cancelled = await strapi.query("api::production-order.production-order").count({
-            where : {
-                ...parseQueryFilters( filters ),
-                status : "cancelled",
-            },
-        });
+        const booked = await strapi.query("api::production-order.production-order").count( query );
+
+        query.filters.status = "inProgress";
+
+        const inProgress = await strapi.query("api::production-order.production-order").count( query );
+
+        query.filters.status = "closed";
+
+        const closed = await strapi.query("api::production-order.production-order").count( query );
+
+        query.filters.status = "cancelled";
+
+        const cancelled = await strapi.query("api::production-order.production-order").count( query );
 
         productionOrders.stats = {};
         productionOrders.stats.open = open;
@@ -143,24 +137,52 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         productionOrders.stats.closed = closed;
         productionOrders.stats.cancelled = cancelled;
 
-        return productionOrders;
+        return {
+            data : productionOrders.results,
+            meta : {
+                totalDocs : productionOrders.pagination.total,
+                limit : productionOrders.pagination.pageSize,
+                page : productionOrders.pagination.page,
+                totalPages : productionOrders.pagination.pageCount,
+            },
+            stats : productionOrders.stats,
+        };
     },
 
     async mpStock( ctx ) {
-        const products = await findMany( PRODUCT_MODEL, {
+        const { query } = ctx;
+
+        query.filters = {
+            ...query.filters,
+            type : "mp",
+            ...( query.search && {
+                name : {
+                    $contains : query.search,
+                },
+            })
+        };
+
+        const products = await strapi.service("api::product.product").find({
+            ...query,
             fields : ["uuid", "name"],
             populate : {
                 unity : {
                     fields : ["uuid", "name"],
                 },
-            },
-        }, {
-            type : "mp",
+            }
         });
 
-        await strapi.service("api::report.report").addProductStats( products.data );
+        await strapi.service("api::report.report").addProductStats( products.results );
 
-        return products;
+        return {
+            data : products.results,
+            meta : {
+                totalDocs : products.pagination.total,
+                limit : products.pagination.pageSize,
+                page : products.pagination.page,
+                totalPages : products.pagination.pageCount,
+            },
+        };
     },
 
     async assortmentOrders( ctx ) {
@@ -243,6 +265,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     },
 
     async loss( ctx ) {
+        const { query } = ctx;
+
         const movementsRaw = await strapi.db.connection.raw(`
             SELECT 
                 p.uuid, 
@@ -269,11 +293,17 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
         const movements = JSON.parse( JSON.stringify( movementsRaw ) )[0];
 
-        const productionOrders = await strapi.query(PRODUCTION_ORDER_MODEL).findMany({
-            where : {
-                status : "closed",
-            },
-            select : ["uuid"],
+        query.filters = {
+            ...query.filters,
+            status : "closed",
+            ...( query.search && {
+                id : query.search,
+            })
+        };
+
+        const productionOrders = await strapi.service(PRODUCTION_ORDER_MODEL).find({
+            ...query,
+            fields : ["uuid"],
             populate : {
                 production : {
                     select : ["id", "stock"],
@@ -281,10 +311,10 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                         materials : true,
                     },
                 }
-            },
+            }
         });
 
-        for ( const order of productionOrders ) {
+        for ( const order of productionOrders.results ) {
             for ( const material of order.production.materials ) {
                 const index = movements.findIndex( movement => movement.uuid === material.uuid );
 
@@ -320,6 +350,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     },
 
     async margins( ctx ) {
+        const { query } = ctx;
+
         const movementsRaw = await strapi.db.connection.raw(`
             SELECT 
                 p.uuid, 
@@ -346,31 +378,37 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
         const movements = JSON.parse( JSON.stringify( movementsRaw ) )[0];
 
-        const productionOrders = await strapi.query(PRODUCTION_ORDER_MODEL).findMany({
-            where : {
-                status : "closed",
-            },
-            select : ["uuid"],
+        query.filters = {
+            ...query.filters,
+            status : "closed",
+            ...( query.search && {
+                id : query.search,
+            }),
+        }
+
+        const productionOrders = await strapi.service(PRODUCTION_ORDER_MODEL).find({
+            ...query,
+            fields : ["uuid"],
             populate : {
                 production : {
-                    select : ["id", "stock", "quantity"],
+                    fields : ["id", "stock", "quantity"],
                     populate : {
                         materials : true,
                         product : {
-                            select : ["uuid", "name"],
+                            fields : ["uuid", "name"],
                             populate : {
                                 saleInfo : true,
                             },
-                        },
+                        }
                     },
                 }
-            },
+            }
         });
 
         let products = [];
 
-        for ( let i = 0; i < productionOrders.length; i++ ) {
-            const order = productionOrders[i];
+        for ( let i = 0; i < productionOrders.results.length; i++ ) {
+            const order = productionOrders.results[i];
 
             let productIndex = products.findIndex( product => product.uuid === order.production.product.uuid ) > -1 ? products.findIndex( product => product.uuid === order.production.product.uuid ) : null;
 
