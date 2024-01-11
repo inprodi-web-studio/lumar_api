@@ -651,16 +651,32 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             }
         }
 
-        // const parsedData2 = products.results.map( ( product ) =>({
-        //     "product"           : product.name,
-        //     "quantityAvailable" : product.totalQuantity,
-        //     "reservedQuantity"  : product.totalReserved,
-        //     "unity"             : product.unity.name,
-        //     "averageConsumed"   : Number.isNaN( product.averageConsumed ) ? 0 : product.averageConsumed,
-        //     "coverage"          : product.coverage === -1 ? "Exceso" : product.coverage,
-        // }));
+        const parsedData2 = parsedData.map( ( product ) =>({
+            "product"  : product.product?.name,
+            "quantity" : product.quantity,
+            "unity"    : product.unity?.name,
+            "order"    : product.productionOrder?.id,
+            "batch"    : product.batch?.name,
+            "stock"    : product.stock?.name,
+        }));
 
-        return parsedData;
+        const csvWriter = createCsvWriter({
+            path: 'ordenes_surtido.csv',
+            header: [
+                {id: 'product', title: 'Producto'},
+                {id: 'quantity', title: 'Cantidad'},
+                {id: 'unity', title: 'Unidad'},
+                {id: 'order', title: 'Orden'},
+                {id: 'batch', title: 'Lote'},
+                {id: 'stock', title: 'Inventario'},
+            ]
+        });
+
+        await csvWriter.writeRecords(parsedData2);
+
+        ctx.attachment('ordenes_surtido.csv');
+
+        await send(ctx, 'ordenes_surtido.csv');
     },
 
     async loss( ctx ) {
@@ -724,8 +740,6 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
                 const deliveredRate = order.production.delivered / order.production.quantity;
 
-                console.log( deliveredRate );
-
                 const averageCost     = movements[index].averageCost;
                 const quantity        = parseFloat( (material.quantity / movements[index].unityConversionRate * deliveredRate).toFixed(4) );
                 const currentCost     = parseFloat( (movements[index].plannedCost || 0).toFixed(4) );
@@ -753,6 +767,10 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         return {
             data : movements.filter( movement => movement.planned ),
         };
+    },
+
+    async downloadLoss( ctx ) {
+        const { query } = ctx;
     },
 
     async margins( ctx ) {
@@ -863,5 +881,9 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         return {
             data : products,
         };
-    }
+    },
+
+    async downloadMargins( ctx ) {
+        const { query } = ctx;
+    },
 }));
