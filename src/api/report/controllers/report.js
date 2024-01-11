@@ -724,9 +724,11 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
                 const deliveredRate = order.production.delivered / order.production.quantity;
 
+                console.log( deliveredRate );
+
                 const averageCost     = movements[index].averageCost;
                 const quantity        = parseFloat( (material.quantity / movements[index].unityConversionRate * deliveredRate).toFixed(4) );
-                const currentCost     = parseFloat( (movements[index].plannedCost * deliveredRate || 0).toFixed(4) );
+                const currentCost     = parseFloat( (movements[index].plannedCost || 0).toFixed(4) );
                 const currentQuantity = parseFloat( (movements[index].planned || 0).toFixed(4) );
 
                 movements[index].planned     = currentQuantity + quantity;
