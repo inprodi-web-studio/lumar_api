@@ -242,27 +242,45 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             },
         });
 
-        query.filters.status = "open";
+        query.filters = {
+            ...query.filters,
+            status : "open",
+        };
 
         const open = await strapi.query("api::production-order.production-order").count( query );
 
-        query.filters.status = "partialBooked";
+        query.filters = {
+            ...query.filters,
+            status : "partialBooked",
+        };
 
         const partialBooked = await strapi.query("api::production-order.production-order").count( query );
 
-        query.filters.status = "booked";
+        query.filters = {
+            ...query.filters,
+            status : "booked",
+        }
 
         const booked = await strapi.query("api::production-order.production-order").count( query );
 
-        query.filters.status = "inProgress";
+        query.filters = {
+            ...query.filters,
+            status : "inProgress",
+        }
 
         const inProgress = await strapi.query("api::production-order.production-order").count( query );
 
-        query.filters.status = "closed";
+        query.filters = {
+            ...query.filters,
+            status : "closed",
+        }
 
         const closed = await strapi.query("api::production-order.production-order").count( query );
 
-        query.filters.status = "cancelled";
+        query.filters = {
+            ...query.filters,
+            status : "cancelled",
+        }
 
         const cancelled = await strapi.query("api::production-order.production-order").count( query );
 
