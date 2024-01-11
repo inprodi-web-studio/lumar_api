@@ -1143,10 +1143,6 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             },
         });
 
-        if ( product.inventoryInfo?.manageBatches && !data.batch ) {
-            throw new UnprocessableContentError( ["Batch is required because the product has being configured to manage batches"] );
-        }
-
         if ( !product.inventoryInfo?.manageBatches && data.batch ) {
             throw new UnprocessableContentError( ["Batch is not required because the product has being configured to dont manage batches"] );
         }
@@ -1176,10 +1172,6 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             });
 
             if ( !batch ) {
-                if ( !data.expirationDay ) {
-                    throw new UnprocessableContentError( ["Expiration day is required because the product has being configured to manage expiration days"] );
-                }
-
                 const newBatch = await strapi.entityService.create( BATCH_MODEL, {
                    data : {
                        product       : product.id,
@@ -1190,7 +1182,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
 
                 const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
                     data : {
-                        stock     : process.env.NODE_ENV === "production" ? 116 : 103,
+                        stock     : process.env.NODE_ENV === "production" ? 114 : 103,
                         warehouse : productionOrder.warehouse.id,
                         quantity  : parseFloat( (data.quantity / product.unityConversionRate).toFixed(4) ),
                         product   : product.id,
@@ -1227,7 +1219,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         batch     : batch.id,
                         warehouse : productionOrder.warehouse.id,
                         product   : product.id,
-                        stock     : process.env.NODE_ENV === "production" ? 116 : 103,
+                        stock     : process.env.NODE_ENV === "production" ? 114 : 103,
                     },
                     fields   : availabilityFields.fields,
                     populate : availabilityFields.populate,
@@ -1265,7 +1257,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 } else {
                     const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
                         data : {
-                            stock     : process.env.NODE_ENV === "production" ? 116 : 103,
+                            stock     : process.env.NODE_ENV === "production" ? 114 : 103,
                             warehouse : productionOrder.warehouse.id,
                             quantity  : parseFloat( (data.quantity / product.unityConversionRate).toFixed(4) ),
                             product   : product.id,
@@ -1330,7 +1322,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             } else {
                 const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
                     data : {
-                        stock     : process.env.NODE_ENV === "production" ? 116 : 103,
+                        stock     : process.env.NODE_ENV === "production" ? 114 : 103,
                         warehouse : productionOrder.warehouse.id,
                         quantity  : parseFloat( (data.quantity / product.unityConversionRate).toFixed(4) ),
                         product   : product.id,

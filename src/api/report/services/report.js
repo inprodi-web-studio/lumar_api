@@ -51,7 +51,9 @@ module.exports = createCoreService("api::report.report", ({ strapi }) => ({
             product.totalQuantity   = availabilities.reduce((sum, item) => sum + item.quantity, 0);
             product.totalReserved   = availabilities.reduce((sum, item) => sum + (item.totalReserved ?? 0), 0);
             product.averageConsumed = parseFloat( ((totalAssignations - totalDesassignations) / assignations.length).toFixed(4) );
-            product.coverage        = parseFloat( (product.totalQuantity / product.averageConsumed).toFixed(4) );
+            product.coverage        = product.totalQuantity === 0 ? 0
+                : Number.isNaN( (product.totalQuantity / product.averageConsumed) ) ? -1 
+                : parseFloat( (product.totalQuantity / product.averageConsumed).toFixed(4) );
         }
     },
 }));
