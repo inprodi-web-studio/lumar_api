@@ -798,7 +798,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             fields : ["uuid"],
             populate : {
                 production : {
-                    fields : ["id", "stock", "quantity"],
+                    fields : ["id", "stock", "quantity", "delivered"],
                     populate : {
                         materials : true,
                         product : {
