@@ -123,7 +123,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             query.filters = {
                 ...query.filters,
                 movementType : {
-                    $in : ["entrance", "exit", "entrance-transfer", "exit-transfer", "adjust"],
+                    $in : ["entrance", "exit", "entrance-transfer", "exit-transfer", "adjust", "deliver"],
                 },
             };
         }
@@ -156,8 +156,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         const movementsDictionary = {
             "entrance" : "Entrada",
             "exit" : "Salida",
-            "entrance-transfer" : "Transferencia",
-            "exit-transfer" : "Traspaso",
+            "entrance-transfer" : "Transferencia - Entrada",
+            "exit-transfer" : "Transferencia - Salida",
             "adjust" : "Ajuste",
         };
 
