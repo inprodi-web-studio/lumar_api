@@ -432,6 +432,10 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                     },
                 },
             },
+            pagination : {
+                page : 1,
+                pageSize : 1000,
+            },
         });
 
         for ( const order of productionOrders.results ) {
