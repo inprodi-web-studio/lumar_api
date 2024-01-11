@@ -222,11 +222,6 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             delete query.limit;
         }
 
-        query.filters = {
-            ...query.filters,
-            status : "closed",
-        };
-
         const productionOrders = await strapi.service("api::production-order.production-order").find({
             ...query,
             fields : ["id", "uuid", "status", "dueDate", "startDate", "createdAt"],
@@ -311,11 +306,6 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
             delete query.limit;
         }
-
-        query.filters = {
-            ...query.filters,
-            status : "closed",
-        };
 
         const productionOrders = await strapi.service("api::production-order.production-order").find({
             ...query,
@@ -714,9 +704,11 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
                 if ( index < 0 ) continue;
 
+                const deliveredRate = order.production.delivered / order.production.quantity;
+
                 const averageCost     = movements[index].averageCost;
-                const quantity        = parseFloat( (material.quantity / movements[index].unityConversionRate).toFixed(4) );
-                const currentCost     = parseFloat( (movements[index].plannedCost || 0).toFixed(4) );
+                const quantity        = parseFloat( (material.quantity / movements[index].unityConversionRate * deliveredRate).toFixed(4) );
+                const currentCost     = parseFloat( (movements[index].plannedCost * deliveredRate || 0).toFixed(4) );
                 const currentQuantity = parseFloat( (movements[index].planned || 0).toFixed(4) );
 
                 movements[index].planned     = currentQuantity + quantity;
@@ -832,7 +824,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 const quantity    = parseFloat( (material.quantity / movements[index].unityConversionRate).toFixed(4) );
                 const currentCost = parseFloat( (products[productIndex].plannedCost || 0).toFixed(4) );
 
-                products[productIndex].plannedCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.quantity)).toFixed(4));
+                products[productIndex].plannedCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.delivered)).toFixed(4));
             }
 
             for ( const stock of order.production.stock ) {
@@ -844,7 +836,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 const quantity    = parseFloat( (stock.quantity / movements[index].unityConversionRate).toFixed(4) );
                 const currentCost = parseFloat( (products[productIndex].realCost || 0).toFixed(4) );
 
-                products[productIndex].realCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.quantity)).toFixed(4));
+                products[productIndex].realCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.delivered)).toFixed(4));
             }
         }
 
