@@ -842,7 +842,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 const quantity    = parseFloat( (material.quantity / movements[index].unityConversionRate).toFixed(4) );
                 const currentCost = parseFloat( (products[productIndex].plannedCost || 0).toFixed(4) );
 
-                products[productIndex].plannedCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.delivered)).toFixed(4));
+                products[productIndex].plannedCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.quantity)).toFixed(4));
             }
 
             for ( const stock of order.production.stock ) {
@@ -854,7 +854,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 const quantity    = parseFloat( (stock.quantity / movements[index].unityConversionRate).toFixed(4) );
                 const currentCost = parseFloat( (products[productIndex].realCost || 0).toFixed(4) );
 
-                products[productIndex].realCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.delivered)).toFixed(4));
+                products[productIndex].realCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.quantity)).toFixed(4));
             }
         }
 
