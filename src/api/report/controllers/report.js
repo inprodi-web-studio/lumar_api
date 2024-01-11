@@ -74,12 +74,40 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
     async productionOrders(ctx) {
         const filters = ctx.query.filters;
+
+        const movementsRaw = await strapi.db.connection.raw(`
+            SELECT 
+                p.uuid, 
+                p.name,
+                p.unity_conversion_rate AS unityConversionRate,
+                CASE 
+                    WHEN SUM(sm.quantity) > 0 
+                    THEN SUM(sm.quantity * sm.price) / SUM(sm.quantity) 
+                    ELSE 0 
+                END AS averageCost
+            FROM 
+                products p
+            JOIN 
+                stock_movements_product_links smp ON p.id = smp.product_id
+            JOIN 
+                stock_movements sm ON smp.stock_movement_id = sm.id
+            WHERE 
+                sm.movement_type = 'entrance' 
+                AND sm.price > 0 
+                AND sm.quantity > 0 
+            GROUP BY 
+                p.id
+        `);
+
+        const movements = JSON.parse( JSON.stringify( movementsRaw ) )[0];
+
         const productionOrders = await findMany("api::production-order.production-order", {
             fields : ["id", "uuid", "status", "dueDate", "startDate", "createdAt"],
             populate : {
                 production : {
-                    fields : ["quantity", "delivered"],
+                    fields : ["quantity", "delivered", "stock"],
                     populate : {
+                        materials : true,
                         product : {
                             fields : ["uuid", "name"],
                             populate : {
@@ -91,7 +119,42 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                     },
                 },
             },
-        });
+        }, filters);
+
+        for ( const order of productionOrders.data ) {
+            const context = {
+                plannedCost : 0,
+                realCost    : 0,
+            };
+
+            for ( const material of order.production.materials ) {
+                const index = movements.findIndex( movement => movement.uuid === material.uuid );
+
+                if ( index < 0 ) continue;
+
+                const averageCost = movements[index].averageCost;
+                const quantity    = parseFloat( (material.quantity / movements[index].unityConversionRate).toFixed(4) );
+                const currentCost = parseFloat( (context.plannedCost || 0).toFixed(4) );
+
+                context.plannedCost = parseFloat((currentCost + (quantity * averageCost)).toFixed(4));
+            }
+
+            for ( const stock of order.production.stock ) {
+                const index = movements.findIndex( movement => movement.uuid === stock.productUuid );
+
+                if ( index < 0 ) continue;
+
+                const averageCost     = movements[index].averageCost;
+                const quantity        = parseFloat( (stock.quantity / movements[index].unityConversionRate).toFixed(4) );
+                const currentCost     = parseFloat( (context.realCost || 0).toFixed(4) );
+
+                context.realCost = parseFloat((currentCost + (quantity * averageCost)).toFixed(4));
+            }
+
+            order.plannedCost = context.plannedCost;
+            order.realCost    = context.realCost;
+            order.loss        = context.realCost - context.plannedCost;
+        }
 
         const open = await strapi.query("api::production-order.production-order").count({
             where : {
