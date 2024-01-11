@@ -498,6 +498,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     },
 
     async assortmentOrders( ctx ) {
+        const { query } = ctx;
+
         const availabilities = await findMany( AVAILABILITY_MODEL, {
             fields   : ["uuid"],
             populate : {
@@ -535,6 +537,13 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                     $not : null,
                 },
             },
+            ...( query.search && {
+                product : {
+                    name : {
+                        $contains : query.search,
+                    },
+                },
+            }),
         });
 
         let parsedData = [];
@@ -576,6 +585,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     },
 
     async downloadAssortmentOrders( ctx ) {
+        const { query } = ctx;
+
         const availabilities = await findMany( AVAILABILITY_MODEL, {
             fields   : ["uuid"],
             populate : {
@@ -617,6 +628,13 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                     $not : null,
                 },
             },
+            ...( query.search && {
+                product : {
+                    name : {
+                        $contains : query.search,
+                    },
+                },
+            }),
         });
 
         let parsedData = [];
@@ -705,6 +723,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 sm.movement_type = 'entrance' 
                 AND sm.price > 0 
                 AND sm.quantity > 0 
+                ${ query.search && `AND p.name LIKE '%${query.search}%'` }
             GROUP BY 
                 p.id
         `);
@@ -714,9 +733,6 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         query.filters = {
             ...query.filters,
             status : "closed",
-            ...( query.search && {
-                id : query.search,
-            })
         };
 
         const productionOrders = await strapi.service(PRODUCTION_ORDER_MODEL).find({
@@ -771,6 +787,127 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
     async downloadLoss( ctx ) {
         const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
+
+        const movementsRaw = await strapi.db.connection.raw(`
+            SELECT 
+                p.uuid, 
+                p.name,
+                p.unity_conversion_rate AS unityConversionRate,
+                CASE 
+                    WHEN SUM(sm.quantity) > 0 
+                    THEN SUM(sm.quantity * sm.price) / SUM(sm.quantity) 
+                    ELSE 0 
+                END AS averageCost
+            FROM 
+                products p
+            JOIN 
+                stock_movements_product_links smp ON p.id = smp.product_id
+            JOIN 
+                stock_movements sm ON smp.stock_movement_id = sm.id
+            WHERE 
+                sm.movement_type = 'entrance' 
+                AND sm.price > 0 
+                AND sm.quantity > 0 
+                ${ query.search && `AND p.name LIKE '%${query.search}%'` }
+            GROUP BY 
+                p.id
+        `);
+
+        const movements = JSON.parse( JSON.stringify( movementsRaw ) )[0];
+
+        query.filters = {
+            ...query.filters,
+            status : "closed",
+        };
+
+        const productionOrders = await strapi.service(PRODUCTION_ORDER_MODEL).find({
+            ...query,
+            fields : ["uuid"],
+            populate : {
+                production : {
+                    select : ["id", "stock"],
+                    populate : {
+                        materials : true,
+                    },
+                }
+            },
+            pagination : {
+                page     : 1,
+                pageSize : 10000,
+            },
+        });
+
+        for ( const order of productionOrders.results ) {
+            for ( const material of order.production.materials ) {
+                const index = movements.findIndex( movement => movement.uuid === material.uuid );
+
+                if ( index < 0 ) continue;
+
+                const deliveredRate = order.production.delivered / order.production.quantity;
+
+                const averageCost     = movements[index].averageCost;
+                const quantity        = parseFloat( (material.quantity / movements[index].unityConversionRate * deliveredRate).toFixed(4) );
+                const currentCost     = parseFloat( (movements[index].plannedCost || 0).toFixed(4) );
+                const currentQuantity = parseFloat( (movements[index].planned || 0).toFixed(4) );
+
+                movements[index].planned     = currentQuantity + quantity;
+                movements[index].plannedCost = parseFloat((currentCost + (quantity * averageCost)).toFixed(4));
+            }
+
+            for ( const stock of order.production.stock ) {
+                const index = movements.findIndex( movement => movement.uuid === stock.productUuid );
+
+                if ( index < 0 ) continue;
+
+                const averageCost     = movements[index].averageCost;
+                const quantity        = parseFloat( (stock.quantity / movements[index].unityConversionRate).toFixed(4) );
+                const currentCost     = parseFloat( (movements[index].realCost || 0).toFixed(4) );
+                const currentQuantity = parseFloat( (movements[index].realQuantity || 0).toFixed(4) );
+
+                movements[index].realQuantity = currentQuantity + quantity;
+                movements[index].realCost     = parseFloat((currentCost + (quantity * averageCost)).toFixed(4));
+
+                movements[index].loss = movements[index].plannedCost - movements[index].realCost;
+            }
+        }
+
+        const data = movements.filter( movement => movement.planned );
+
+        const csvWriter = createCsvWriter({
+            path: 'mermas.csv',
+            header: [
+                { id: 'name', title: 'Producto' },
+                { id: 'planned', title: 'Consumo Planeado' },
+                { id: 'realQuantity', title: 'Consumo Real' },
+                { id: 'plannedCost', title: 'Costo Planeado' },
+                { id: 'realCost', title: 'Costo Real' },
+                { id: 'loss', title: 'Merma' },
+            ]
+        });
+
+        await csvWriter.writeRecords(data);
+
+        ctx.attachment('mermas.csv');
+
+        await send(ctx, 'mermas.csv');
     },
 
     async margins( ctx ) {
@@ -809,7 +946,13 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             ...query.filters,
             status : "closed",
             ...( query.search && {
-                id : query.search,
+                production : {
+                    product : {
+                        name : {
+                            $contains : query.search,
+                        },
+                    },
+                },
             }),
         }
 
@@ -885,5 +1028,151 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
     async downloadMargins( ctx ) {
         const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
+
+        const movementsRaw = await strapi.db.connection.raw(`
+            SELECT 
+                p.uuid, 
+                p.name,
+                p.unity_conversion_rate AS unityConversionRate,
+                CASE 
+                    WHEN SUM(sm.quantity) > 0 
+                    THEN SUM(sm.quantity * sm.price) / SUM(sm.quantity) 
+                    ELSE 0 
+                END AS averageCost
+            FROM 
+                products p
+            JOIN 
+                stock_movements_product_links smp ON p.id = smp.product_id
+            JOIN 
+                stock_movements sm ON smp.stock_movement_id = sm.id
+            WHERE 
+                sm.movement_type = 'entrance' 
+                AND sm.price > 0 
+                AND sm.quantity > 0 
+            GROUP BY 
+                p.id
+        `);
+
+        const movements = JSON.parse( JSON.stringify( movementsRaw ) )[0];
+
+        query.filters = {
+            ...query.filters,
+            status : "closed",
+            ...( query.search && {
+                production : {
+                    product : {
+                        name : {
+                            $contains : query.search,
+                        },
+                    },
+                },
+            }),
+        }
+
+        const productionOrders = await strapi.service(PRODUCTION_ORDER_MODEL).find({
+            ...query,
+            fields : ["uuid"],
+            populate : {
+                production : {
+                    fields : ["id", "stock", "quantity", "delivered"],
+                    populate : {
+                        materials : true,
+                        product : {
+                            fields : ["uuid", "name"],
+                            populate : {
+                                saleInfo : true,
+                            },
+                        }
+                    },
+                }
+            }
+        });
+
+        let products = [];
+
+        for ( let i = 0; i < productionOrders.results.length; i++ ) {
+            const order = productionOrders.results[i];
+
+            let productIndex = products.findIndex( product => product.uuid === order.production.product.uuid ) > -1 ? products.findIndex( product => product.uuid === order.production.product.uuid ) : null;
+
+            if ( productIndex !== null ) {
+                continue;
+            }
+
+            products.push({
+                name        : order.production.product.name,
+                uuid        : order.production.product.uuid,
+                price       : order.production.product.saleInfo.salePrice,
+                realCost    : 0,
+                plannedCost : 0,
+                plannedMargin : 0,
+                realMargin : 0,
+            });
+
+            productIndex = products.findIndex( product => product.uuid === order.production.product.uuid );
+
+            for ( const material of order.production.materials ) {
+                const index = movements.findIndex( movement => movement.uuid === material.uuid );
+
+                if ( index < 0 ) continue;
+
+                const averageCost = movements[index].averageCost;
+                const quantity    = parseFloat( (material.quantity / movements[index].unityConversionRate).toFixed(4) );
+                const currentCost = parseFloat( (products[productIndex].plannedCost || 0).toFixed(4) );
+
+                products[productIndex].plannedCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.quantity)).toFixed(4));
+            }
+
+            for ( const stock of order.production.stock ) {
+                const index = movements.findIndex( movement => movement.uuid === stock.productUuid );
+
+                if ( index < 0 ) continue;
+
+                const averageCost = movements[index].averageCost;
+                const quantity    = parseFloat( (stock.quantity / movements[index].unityConversionRate).toFixed(4) );
+                const currentCost = parseFloat( (products[productIndex].realCost || 0).toFixed(4) );
+
+                products[productIndex].realCost = parseFloat((currentCost + ((quantity * averageCost) / order.production.delivered)).toFixed(4));
+            }
+
+            products[productIndex].plannedMargin = parseFloat(( 1 - ( products[productIndex].plannedCost / products[productIndex].price ) ).toFixed(4));
+            products[productIndex].realMargin = parseFloat(( 1 - ( products[productIndex].realCost / products[productIndex].price ) ).toFixed(4));
+        }
+
+        const csvWriter = createCsvWriter({
+            path: 'margenes.csv',
+            header: [
+                { id: 'name', title: 'Producto' },
+                { id: 'plannedCost', title: 'Costo Planeado' },
+                { id: 'realCost', title: 'Costo Real' },
+                { id: 'price', title: 'Precio de Venta' },
+                { id: 'plannedMargin', title: 'Margen Planeado' },
+                { id: 'realMargin', title: 'Margen Real' },
+            ]
+        });
+
+        await csvWriter.writeRecords(products);
+
+        ctx.attachment('margenes.csv');
+
+        await send(ctx, 'margenes.csv');
     },
 }));
