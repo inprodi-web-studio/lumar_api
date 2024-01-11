@@ -149,15 +149,29 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             },
             pagination : {
                 page : 1,
-                pageSize : 100000,
+                pageSize : 10000,
             },
         });
+
+        const movementsDictionary = {
+            "entrance" : "Entrada",
+            "exit" : "Salida",
+            "entrance-transfer" : "Transferencia",
+            "exit-transfer" : "Traspaso",
+            "adjust" : "Ajuste",
+        };
+
+        const typesDictionary = {
+            deal : "Compra",
+            warranty : "Garantía",
+            return : "Retorno",
+        }
 
         const parsedData = stockMovements.results.map((stockMovement) => {
             return {
                 "product"  : stockMovement.product?.name ?? "-",
-                "movement" : stockMovement.movementType ?? "-",
-                "type"     : stockMovement.type ?? "-",
+                "movement" : movementsDictionary[ stockMovement.movementType ] ?? "-",
+                "type"     : typesDictionary[ stockMovement.type ] ?? "-",
                 "stock"    : stockMovement.stock?.name ?? "-",
                 "batch"    : stockMovement.batch?.name ?? "-",
                 "quantity" : stockMovement.quantity ?? "-",
@@ -172,7 +186,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 { id: 'product', title: 'Producto' },
                 { id: 'movement', title: 'Movimiento' },
                 { id: 'type', title: 'Tipo' },
-                { id: 'stock', title: 'Stock' },
+                { id: 'stock', title: 'Inventario' },
                 { id: 'batch', title: 'Lote' },
                 { id: 'quantity', title: 'Cantidad' },
                 { id: 'unity', title: 'Unidad' },
@@ -410,6 +424,71 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         };
     },
 
+    async downloadMpStock(ctx) {
+        const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
+
+        const products = await strapi.service("api::product.product").find({
+            ...query,
+            fields : ["uuid", "name"],
+            populate : {
+                unity : {
+                    fields : ["uuid", "name"],
+                },
+            },
+            pagination : {
+                page : 1,
+                pageSize : 10000,
+            },
+        });
+
+        await strapi.service("api::report.report").addProductStats( products.results );
+
+        const parsedData = products.results.map( ( product ) =>({
+            "product"           : product.name,
+            "quantityAvailable" : product.totalQuantity,
+            "reservedQuantity"  : product.totalReserved,
+            "unity"             : product.unity.name,
+            "averageConsumed"   : Number.isNaN( product.averageConsumed ) ? 0 : product.averageConsumed,
+            "coverage"          : product.coverage === -1 ? "Exceso" : product.coverage,
+        }));
+
+        const csvWriter = createCsvWriter({
+            path: 'cubrimiento.csv',
+            header: [
+                {id: 'product', title: 'Producto'},
+                {id: 'quantityAvailable', title: 'Cantidad Disponible'},
+                {id: 'reservedQuantity', title: 'Cantidad Reservada'},
+                {id: 'unity', title: 'Unidad'},
+                {id: 'averageConsumed', title: 'Consumo Promedio'},
+                {id: 'coverage', title: 'Cubrimiento'},
+            ]
+        });
+
+        await csvWriter.writeRecords(parsedData);
+
+        ctx.attachment('cubrimiento.csv');
+
+        await send(ctx, 'cubrimiento.csv');
+    },
+
     async assortmentOrders( ctx ) {
         const availabilities = await findMany( AVAILABILITY_MODEL, {
             fields   : ["uuid"],
@@ -480,13 +559,100 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                     },
                 });
             }
-
         }
 
         return {
             data : parsedData,
             meta : availabilities.meta,
         };
+    },
+
+    async downloadAssortmentOrders( ctx ) {
+        const availabilities = await findMany( AVAILABILITY_MODEL, {
+            fields   : ["uuid"],
+            populate : {
+                product : {
+                    fields : ["uuid", "name"],
+                    populate : {
+                        unity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
+                },
+                batch : {
+                    fields : ["uuid", "name"],
+                },
+                reserves : {
+                    fields : ["quantity"],
+                    populate : {
+                        productionOrder : {
+                            fields : ["uuid"],
+                        },
+                    },
+                },
+                stock : {
+                    fields : ["uuid", "name"],
+                }
+            },
+            pagination : {
+                page : 1,
+                pageSize : 10000,
+            },
+        }, {
+            stock : {
+                uuid : {
+                    $not : process.env.NODE_ENV === "production" ? "c0c0f4e8-a7ba-4776-a62d-f183cc1d10ae" : "5a438390-342c-4537-a532-e7988e6ce7f0",
+                },
+            },
+            reserves : {
+                productionOrder : {
+                    $not : null,
+                },
+            },
+        });
+
+        let parsedData = [];
+
+        for ( let i = 0; i < availabilities.data.length; i++ ) {
+            const availability = availabilities.data[i];
+
+            for ( let j = 0; j < availability.reserves.length; j++ ) {
+                const reserve = availability.reserves[j];
+
+                parsedData.push({
+                    product : {
+                        name : availability.product.name,
+                    },
+                    quantity : reserve.quantity,
+                    productionOrder : {
+                        uuid : reserve.productionOrder.uuid,
+                        id   : reserve.productionOrder.id,
+                    },
+                    unity : {
+                        name : availability.product.unity.name,
+                    },
+                    batch : {
+                        uuid : availability.batch?.uuid,
+                        name : availability.batch?.name,
+                    },
+                    stock : {
+                        uuid : availability.stock.uuid,
+                        name : availability.stock.name,
+                    },
+                });
+            }
+        }
+
+        // const parsedData2 = products.results.map( ( product ) =>({
+        //     "product"           : product.name,
+        //     "quantityAvailable" : product.totalQuantity,
+        //     "reservedQuantity"  : product.totalReserved,
+        //     "unity"             : product.unity.name,
+        //     "averageConsumed"   : Number.isNaN( product.averageConsumed ) ? 0 : product.averageConsumed,
+        //     "coverage"          : product.coverage === -1 ? "Exceso" : product.coverage,
+        // }));
+
+        return parsedData;
     },
 
     async loss( ctx ) {

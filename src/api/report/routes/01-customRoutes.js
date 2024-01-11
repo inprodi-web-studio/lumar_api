@@ -27,8 +27,18 @@ module.exports = {
       },
       {
         method: "GET",
+        path: "/reports/mp-stock/download",
+        handler: "report.downloadMpStock",
+      },
+      {
+        method: "GET",
         path: "/reports/assortment-orders",
         handler: "report.assortmentOrders",
+      },
+      {
+        method: "GET",
+        path: "/reports/assortment-orders/download",
+        handler: "report.downloadAssortmentOrders",
       },
       {
         method: "GET",
