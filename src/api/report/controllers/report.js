@@ -563,6 +563,9 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 unity : {
                     fields : ["uuid", "name"],
                 },
+                inventoryInfo : {
+                    fields : ["alertQuantity"],
+                },
             },
         });
 
@@ -623,6 +626,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             "unity"             : product.unity.name,
             "averageConsumed"   : Number.isNaN( product.averageConsumed ) ? 0 : product.averageConsumed,
             "coverage"          : product.coverage === -1 ? "Exceso" : product.coverage,
+            "minimun"           : product.minimun,
+            "difference"        : product.difference,
         }));
 
         const csvWriter = createCsvWriter({
@@ -634,6 +639,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 {id: 'unity', title: 'Unidad'},
                 {id: 'averageConsumed', title: 'Consumo Promedio'},
                 {id: 'coverage', title: 'Cubrimiento'},
+                {id: 'minimun', title: 'Mínimo'},
+                {id: 'difference', title: 'Faltante vs Mínimo'},
             ]
         });
 
