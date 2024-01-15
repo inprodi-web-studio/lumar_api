@@ -222,6 +222,19 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             delete query.limit;
         }
 
+        query.filters = {
+            ...query.filters,
+            ...( query.search && {
+                production : {
+                    product : {
+                        name : {
+                            $contains : query.search,
+                        },
+                    },
+                },
+            }),
+        };
+
         const productionOrders = await strapi.service("api::production-order.production-order").find({
             ...query,
             fields : ["id", "uuid", "status", "dueDate", "startDate", "createdAt"],
