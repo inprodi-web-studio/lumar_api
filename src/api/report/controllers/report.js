@@ -300,7 +300,9 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 context.plannedCost = parseFloat((currentCost + (quantity * averageCost)).toFixed(4));
             }
 
-            for ( const stock of order.production.stock ) {
+            for ( const stock of order.production.stock ?? [{
+                quantity : 0,
+            }] ) {
                 const index = movements.findIndex( movement => movement.uuid === stock.productUuid );
 
                 if ( index < 0 ) continue;
