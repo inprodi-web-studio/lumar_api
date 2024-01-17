@@ -54,7 +54,7 @@ module.exports = createCoreService("api::report.report", ({ strapi }) => ({
             product.coverage        = product.totalQuantity === 0 ? 0
                 : Number.isNaN( (product.totalQuantity / product.averageConsumed) ) ? -1 
                 : parseFloat( (product.totalQuantity / product.averageConsumed).toFixed(4) );
-            product.minimun = product.inventoryInfo.minimum ?? 0;
+            product.minimun    = product.inventoryInfo.minimum ?? 0;
             product.difference = product.totalQuantity - product.minimun;
         }
     },

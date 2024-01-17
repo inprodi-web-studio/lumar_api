@@ -556,6 +556,17 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             delete query.limit;
         }
 
+        if ( query.search ) {
+            query.filters = {
+                ...query.filters,
+                name : {
+                    $contains : query.search,
+                },
+            };
+        }
+
+        console.log(query.filters);
+
         const products = await strapi.service("api::product.product").find({
             ...query,
             fields : ["uuid", "name"],
@@ -603,12 +614,24 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             delete query.limit;
         }
 
+        if ( query.search ) {
+            query.filters = {
+                ...query.filters,
+                name : {
+                    $contains : query.search,
+                },
+            };
+        }
+
         const products = await strapi.service("api::product.product").find({
             ...query,
             fields : ["uuid", "name"],
             populate : {
                 unity : {
                     fields : ["uuid", "name"],
+                },
+                inventoryInfo : {
+                    fields : ["alertQuantity"],
                 },
             },
             pagination : {
