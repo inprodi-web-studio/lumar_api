@@ -2,6 +2,11 @@ module.exports = {
     routes : [
       {
         method: "GET",
+        path: "/reports/availabilities",
+        handler: "report.availabilities",
+      },
+      {
+        method: "GET",
         path: "/reports/stock-movements",
         handler: "report.stockMovements",
       },

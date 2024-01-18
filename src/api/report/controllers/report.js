@@ -10,6 +10,45 @@ const send = require('koa-send');
 const { createCoreController } = require("@strapi/strapi").factories;
 
 module.exports = createCoreController("api::report.report", ({ strapi }) => ({
+    async availabilities(ctx) {
+        const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
+
+        if ( query.search ) {
+            query.filters = {
+                ...query.filters,
+                product : {
+                    name : {
+                        $contains : query.search,
+                    },
+                },
+            };
+        }
+
+        const availabilities = await strapi.service("api::availability.availability").find({
+            ...query,
+        });
+
+        return availabilities;
+    },
+    
     async stockMovements(ctx) {
         const { query } = ctx;
 
@@ -564,8 +603,6 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 },
             };
         }
-
-        console.log(query.filters);
 
         const products = await strapi.service("api::product.product").find({
             ...query,
