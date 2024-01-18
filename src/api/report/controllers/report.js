@@ -69,7 +69,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 totalDocs : availabilities.pagination.total,
                 limit : availabilities.pagination.pageSize,
                 page : availabilities.pagination.page,
-                totalPages : availabilities.pagination.totalPages,
+                totalPages : availabilities.pagination.pageCount,
             },
         };
     },
