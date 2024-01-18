@@ -116,6 +116,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                         unity : {
                             fields : ["uuid", "name"],
                         },
+                        purchaseInfo : true,
                     },
                 },
                 batch : {
@@ -133,12 +134,12 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
         const parsedData = availabilities.results.map( availability => {
             return {
-                product       : availability.product.name,
-                unity         : availability.unity.name,
-                batch         : availability.batch.name,
+                product       : availability.product?.name ?? "-",
+                unity         : availability.product.unity?.name ?? "-",
+                batch         : availability.batch?.name ?? "-",
                 quantity      : availability.quantity,
                 totalReserved : availability.totalReserved,
-                value         : availability.quantity * availability.product.purchaseInfo.purchasePrice,
+                value         : parseFloat( (availability.quantity * availability.product.purchaseInfo?.purchasePrice).toFixed(2) ) ?? 0,
             };
         });
 
