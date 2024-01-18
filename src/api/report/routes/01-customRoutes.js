@@ -7,6 +7,11 @@ module.exports = {
       },
       {
         method: "GET",
+        path: "/reports/availabilities/download",
+        handler: "report.downloadAvailabilities",
+      },
+      {
+        method: "GET",
         path: "/reports/stock-movements",
         handler: "report.stockMovements",
       },
