@@ -44,9 +44,121 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
         const availabilities = await strapi.service("api::availability.availability").find({
             ...query,
+            fields : ["uuid", "quantity", "totalReserved"],
+            populate : {
+                product : {
+                    fields : ["uuid", "name"],
+                    populate : {
+                        unity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
+                },
+                batch : {
+                    fields : ["uuid", "name"],
+                },
+                stock : {
+                    fields : ["uuid", "name"],
+                }
+            },
         });
 
-        return availabilities;
+        return {
+            data : availabilities.results,
+            meta : {
+                totalDocs : availabilities.pagination.total,
+                limit : availabilities.pagination.pageSize,
+                page : availabilities.pagination.page,
+                totalPages : availabilities.pagination.totalPages,
+            },
+        };
+    },
+
+    async downloadAvailabilities(ctx) {
+      const { query } = ctx;
+      
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
+
+        if ( query.search ) {
+            query.filters = {
+                ...query.filters,
+                product : {
+                    name : {
+                        $contains : query.search,
+                    },
+                },
+            };
+        }
+
+        const availabilities = await strapi.service("api::availability.availability").find({
+            ...query,
+            fields : ["uuid", "quantity", "totalReserved"],
+            populate : {
+                product : {
+                    fields : ["uuid", "name"],
+                    populate : {
+                        unity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
+                },
+                batch : {
+                    fields : ["uuid", "name"],
+                },
+                stock : {
+                    fields : ["uuid", "name"],
+                }
+            },
+            pagination : {
+                page : 1,
+                pageSize : 10000,
+            },
+        });
+
+        const parsedData = availabilities.results.map( availability => {
+            return {
+                product       : availability.product.name,
+                unity         : availability.unity.name,
+                batch         : availability.batch.name,
+                quantity      : availability.quantity,
+                totalReserved : availability.totalReserved,
+                value         : availability.quantity * availability.product.purchaseInfo.purchasePrice,
+            };
+        });
+
+        const csvWriter = createCsvWriter({
+            path: 'inventarios.csv',
+            header: [
+                { id: 'product', title: 'Product' },
+                { id: 'unity', title: 'Unidad' },
+                { id: 'batch', title: 'Lote' },
+                { id: 'quantity', title: 'Disponible' },
+                { id: 'totalReserved', title: 'Reservado' },
+                { id: 'value', title: 'Valor' },
+            ]
+        });
+
+        await csvWriter.writeRecords(parsedData);
+
+        ctx.attachment('inventarios.csv');
+
+        await send(ctx, 'inventarios.csv');
     },
     
     async stockMovements(ctx) {
