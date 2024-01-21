@@ -230,10 +230,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             },
         });
 
-        query.filters = {
-            ...query.filters,
-            movementType : "entrance",
-        }
+        query.filters.movementType = "exit";
 
         const entries = await strapi.query("api::stock-movement.stock-movement").count( query );
 
@@ -1706,5 +1703,170 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         ctx.attachment('entregas.csv');
 
         await send(ctx, 'entregas.csv');
+    },
+
+    async sales(ctx) {
+        const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
+
+        if ( query.search ) {
+            query.filters = {
+                ...query.filters,
+                product : {
+                    name : {
+                        $contains : query.search,
+                    },
+                },
+            };
+        }
+
+        query.filters = {
+            ...query.filters,
+            movementType : "exit",
+            type         : "deal",
+        };
+
+        const stockMovements = await strapi.service("api::stock-movement.stock-movement").find({
+            ...query,
+            fields : ["movementType", "type", "price", "quantity", "createdAt"],
+            populate : {
+                product : {
+                    fields : ["uuid", "name"],
+                    populate : {
+                        unity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
+                },
+                stock : {
+                    fields : ["uuid", "name"],
+                },
+                batch : {
+                    fields : ["uuid", "name"],
+                },
+                user : {
+                    fields : ["uuid", "name", "lastName"],
+                },
+            },
+            sort : {
+                createdAt : "desc",
+            },
+        });
+
+        return {
+            data : stockMovements.results,
+            meta : {
+                totalDocs : stockMovements.pagination.total,
+                limit : stockMovements.pagination.pageSize,
+                page : stockMovements.pagination.page,
+                totalPages : stockMovements.pagination.pageCount,
+            },
+        };
+    },
+
+    async downloadSales(ctx) {
+        const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
+
+        query.filters = {
+            ...query.filters,
+            movementType : "exit",
+            type         : "deal",
+            ...( query.search && {
+                product : {
+                    name : {
+                        $contains : query.search,
+                    },
+                },
+            }),
+        };
+
+        const stockMovements = await strapi.service("api::stock-movement.stock-movement").find({
+            ...query,
+            fields : ["movementType", "type", "price", "quantity", "createdAt"],
+            populate : {
+                product : {
+                    fields : ["uuid", "name"],
+                    populate : {
+                        unity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
+                },
+                stock : {
+                    fields : ["uuid", "name"],
+                },
+                batch : {
+                    fields : ["uuid", "name"],
+                },
+                user : {
+                    fields : ["uuid", "name", "lastName"],
+                }
+            },
+            sort : {
+                createdAt : "desc",
+            },
+            pagination : {
+                page : 1,
+                pageSize : 10000,
+            },
+        });
+
+        const parsedData = stockMovements.results.map((stockMovement) => {
+            return {
+                "product"  : stockMovement.product?.name ?? "-",
+                "quantity" : stockMovement.quantity ?? "-",
+                "unity"    : stockMovement.product?.unity?.name ?? "-",
+            }
+        });
+
+        const csvWriter = createCsvWriter({
+            path: 'ventas.csv',
+            header: [
+                { id: 'product', title: 'Producto' },
+                { id: 'quantity', title: 'Cantidad' },
+                { id: 'unity', title: 'Unidad' },
+            ]
+        });
+
+        await csvWriter.writeRecords(parsedData);
+
+        ctx.attachment('ventas.csv');
+
+        await send(ctx, 'ventas.csv');
     },
 }));

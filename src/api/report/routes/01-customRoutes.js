@@ -80,5 +80,15 @@ module.exports = {
         path: "/reports/deliveries/download",
         handler: "report.downloadDeliveries",
       },
+      {
+        method: "GET",
+        path: "/reports/sales",
+        handler: "report.sales",
+      },
+      {
+        method: "GET",
+        path: "/reports/sales/download",
+        handler: "report.downloadSales",
+      },
     ],
 }
