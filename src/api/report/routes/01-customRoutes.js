@@ -70,5 +70,15 @@ module.exports = {
         path: "/reports/margins/download",
         handler: "report.downloadMargins",
       },
+      {
+        method: "GET",
+        path: "/reports/deliveries",
+        handler: "report.deliveries",
+      },
+      {
+        method: "GET",
+        path: "/reports/deliveries/download",
+        handler: "report.downloadDeliveries",
+      },
     ],
 }

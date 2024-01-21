@@ -192,6 +192,17 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             };
         }
 
+        if ( query.search ) {
+            query.filters = {
+                ...query.filters,
+                product : {
+                    name : {
+                        $contains : query.search,
+                    },
+                },
+            };
+        }
+
         const stockMovements = await strapi.service("api::stock-movement.stock-movement").find({
             ...query,
             fields : ["movementType", "type", "price", "quantity", "createdAt"],
@@ -210,6 +221,12 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 batch : {
                     fields : ["uuid", "name"],
                 },
+                user : {
+                    fields : ["uuid", "name", "lastName"],
+                },
+            },
+            sort : {
+                createdAt : "desc",
             },
         });
 
@@ -275,9 +292,20 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             query.filters = {
                 ...query.filters,
                 movementType : {
-                    $in : ["entrance", "exit", "entrance-transfer", "exit-transfer", "adjust", "deliver"],
+                    $in : ["entrance", "exit", "entrance-transfer", "exit-transfer", "adjust"],
                 },
             };
+        }
+
+        query.filters = {
+            ...query.filters,
+            ...( query.search && {
+                product : {
+                    name : {
+                        $contains : query.search,
+                    },
+                },
+            }),
         }
 
         const stockMovements = await strapi.service("api::stock-movement.stock-movement").find({
@@ -298,6 +326,12 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 batch : {
                     fields : ["uuid", "name"],
                 },
+                user : {
+                    fields : ["uuid", "name", "lastName"],
+                }
+            },
+            sort : {
+                createdAt : "desc",
             },
             pagination : {
                 page : 1,
@@ -329,6 +363,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 "quantity" : stockMovement.quantity ?? "-",
                 "unity"    : stockMovement.product?.unity?.name ?? "-",
                 "date"     : stockMovement.createdAt,
+                "user"     : stockMovement.user ? `${stockMovement.user.name} ${stockMovement.user.lastName}` : "-",
             }
         });
 
@@ -343,6 +378,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 { id: 'quantity', title: 'Cantidad' },
                 { id: 'unity', title: 'Unidad' },
                 { id: 'date', title: 'Fecha' },
+                { id: 'user', title: 'Usuario' },
             ]
         });
 
@@ -1502,5 +1538,173 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         ctx.attachment('margenes.csv');
 
         await send(ctx, 'margenes.csv');
+    },
+
+    async deliveries(ctx) {
+        const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
+
+        if ( query.search ) {
+            query.filters = {
+                ...query.filters,
+                product : {
+                    name : {
+                        $contains : query.search,
+                    },
+                },
+            };
+        }
+
+        query.filters = {
+            ...query.filters,
+            movementType : "deliver",
+        };
+
+        const stockMovements = await strapi.service("api::stock-movement.stock-movement").find({
+            ...query,
+            fields : ["movementType", "type", "price", "quantity", "createdAt"],
+            populate : {
+                product : {
+                    fields : ["uuid", "name"],
+                    populate : {
+                        unity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
+                },
+                stock : {
+                    fields : ["uuid", "name"],
+                },
+                batch : {
+                    fields : ["uuid", "name"],
+                },
+                user : {
+                    fields : ["uuid", "name", "lastName"],
+                },
+            },
+            sort : {
+                createdAt : "desc",
+            },
+        });
+
+        return {
+            data : stockMovements.results,
+            meta : {
+                totalDocs : stockMovements.pagination.total,
+                limit : stockMovements.pagination.pageSize,
+                page : stockMovements.pagination.page,
+                totalPages : stockMovements.pagination.pageCount,
+            },
+        };
+    },
+
+    async downloadDeliveries(ctx) {
+        const { query } = ctx;
+
+        if ( query.page ) {
+            query.pagination = {
+                page : query.page,
+                ...query.pagination,
+            }
+
+            delete query.page;
+        }
+
+        if ( query.limit ) {
+            query.pagination = {
+                ...query.pagination,
+                pageSize : query.limit,
+            }
+
+            delete query.limit;
+        }
+
+        query.filters = {
+            ...query.filters,
+            ...( query.search && {
+                product : {
+                    name : {
+                        $contains : query.search,
+                    },
+                },
+            }),
+        };
+
+        const stockMovements = await strapi.service("api::stock-movement.stock-movement").find({
+            ...query,
+            fields : ["movementType", "type", "price", "quantity", "createdAt"],
+            populate : {
+                product : {
+                    fields : ["uuid", "name"],
+                    populate : {
+                        unity : {
+                            fields : ["uuid", "name"],
+                        },
+                    },
+                },
+                stock : {
+                    fields : ["uuid", "name"],
+                },
+                batch : {
+                    fields : ["uuid", "name"],
+                },
+                user : {
+                    fields : ["uuid", "name", "lastName"],
+                }
+            },
+            sort : {
+                createdAt : "desc",
+            },
+            pagination : {
+                page : 1,
+                pageSize : 10000,
+            },
+        });
+
+        const parsedData = stockMovements.results.map((stockMovement) => {
+            return {
+                "product"  : stockMovement.product?.name ?? "-",
+                "batch"    : stockMovement.batch?.name ?? "-",
+                "quantity" : stockMovement.quantity ?? "-",
+                "unity"    : stockMovement.product?.unity?.name ?? "-",
+                "date"     : stockMovement.createdAt,
+                "user"     : stockMovement.user ? `${stockMovement.user.name} ${stockMovement.user.lastName}` : "-",
+            }
+        });
+
+        const csvWriter = createCsvWriter({
+            path: 'entregas.csv',
+            header: [
+                { id: 'product', title: 'Producto' },
+                { id: 'batch', title: 'Lote' },
+                { id: 'quantity', title: 'Cantidad' },
+                { id: 'unity', title: 'Unidad' },
+                { id: 'date', title: 'Fecha' },
+                { id: 'user', title: 'Usuario' },
+            ]
+        });
+
+        await csvWriter.writeRecords(parsedData);
+
+        ctx.attachment('entregas.csv');
+
+        await send(ctx, 'entregas.csv');
     },
 }));

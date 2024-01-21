@@ -62,6 +62,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             price        : data.price,
             quantity     : data.quantity,
             batch        : availability.batch?.id,
+            user         : ctx.state.user.id,
            },
         });
 
@@ -110,6 +111,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
              price        : data.price,
              quantity     : data.quantity,
              batch        : availability.batch?.id,
+             user         : ctx.state.user.id,
             },
          });
 
@@ -175,6 +177,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
              product      : product.id,
              quantity     : data.quantity,
              batch        : availability.out?.batch?.id,
+             user         : ctx.state.user.id,
             },
          });
 
@@ -225,6 +228,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
              quantity     : data.quantity,
              batch        : availability.batch?.id,
              motive       : motive.id,
+             user         : ctx.state.user.id,
             },
          });
 
