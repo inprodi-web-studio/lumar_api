@@ -66,6 +66,11 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "plugin::users-permissions.user"
+    },
+    "productionOrder": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::production-order.production-order"
     }
   }
 }

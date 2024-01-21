@@ -47,7 +47,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             fields : ["uuid", "quantity", "totalReserved"],
             populate : {
                 product : {
-                    fields : ["uuid", "name"],
+                    fields : ["uuid", "name", "sku"],
                     populate : {
                         unity : {
                             fields : ["uuid", "name"],
@@ -1743,41 +1743,19 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             type         : "deal",
         };
 
-        const stockMovements = await strapi.service("api::stock-movement.stock-movement").find({
-            ...query,
-            fields : ["movementType", "type", "price", "quantity", "createdAt"],
-            populate : {
-                product : {
-                    fields : ["uuid", "name"],
-                    populate : {
-                        unity : {
-                            fields : ["uuid", "name"],
-                        },
-                    },
-                },
-                stock : {
-                    fields : ["uuid", "name"],
-                },
-                batch : {
-                    fields : ["uuid", "name"],
-                },
-                user : {
-                    fields : ["uuid", "name", "lastName"],
-                },
-            },
-            sort : {
-                createdAt : "desc",
-            },
-        });
+        const movementsRaw = await strapi.db.connection.raw(`
+            SELECT p.name as product_single, u.name as unity_single, SUM(sm.quantity) as quantity
+            FROM stock_movements sm
+            JOIN stock_movements_product_links smpl ON sm.id = smpl.stock_movement_id
+            JOIN products p ON smpl.product_id = p.id
+            JOIN products_unity_links pul ON p.id = pul.product_id
+            JOIN unities u ON pul.unity_id = u.id
+            WHERE sm.type = 'deal' AND sm.movement_type = 'exit'
+            GROUP BY p.name, u.name;
+        `);
 
         return {
-            data : stockMovements.results,
-            meta : {
-                totalDocs : stockMovements.pagination.total,
-                limit : stockMovements.pagination.pageSize,
-                page : stockMovements.pagination.page,
-                totalPages : stockMovements.pagination.pageCount,
-            },
+            data : movementsRaw[0],
         };
     },
 

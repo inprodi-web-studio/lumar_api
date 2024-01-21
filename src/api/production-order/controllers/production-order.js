@@ -1194,12 +1194,13 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
 
                 await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
                     data : {
-                        movementType : "deliver",
-                        warehouse    : newAvailability.warehouse.id,
-                        stock        : newAvailability.stock.id,
-                        product      : newAvailability.product.id,
-                        batch        : newAvailability.batch?.id,
-                        quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                        movementType    : "deliver",
+                        warehouse       : newAvailability.warehouse.id,
+                        stock           : newAvailability.stock.id,
+                        product         : newAvailability.product.id,
+                        batch           : newAvailability.batch?.id,
+                        quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                        productionOrder : productionOrder.id,
                     },
                 });
 
@@ -1236,12 +1237,13 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
 
                     await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
                         data : {
-                            movementType : "deliver",
-                            warehouse    : inAvailability.warehouse.id,
-                            stock        : inAvailability.stock.id,
-                            product      : inAvailability.product.id,
-                            batch        : inAvailability.batch?.id,
-                            quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                            movementType    : "deliver",
+                            warehouse       : inAvailability.warehouse.id,
+                            stock           : inAvailability.stock.id,
+                            product         : inAvailability.product.id,
+                            batch           : inAvailability.batch?.id,
+                            quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                            productionOrder : productionOrder.id,
                         },
                     });
 
@@ -1301,12 +1303,13 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
 
                 await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
                     data : {
-                        movementType : "deliver",
-                        warehouse    : inAvailability.warehouse.id,
-                        stock        : inAvailability.stock.id,
-                        product      : inAvailability.product.id,
-                        batch        : inAvailability.batch?.id,
-                        quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                        movementType    : "deliver",
+                        warehouse       : inAvailability.warehouse.id,
+                        stock           : inAvailability.stock.id,
+                        product         : inAvailability.product.id,
+                        batch           : inAvailability.batch?.id,
+                        quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                        productionOrder : productionOrder.id,
                     },
                 });
 
@@ -1333,12 +1336,13 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
 
                 await strapi.entityService.create(STOCK_MOVEMENT_MODEL, {
                     data : {
-                        movementType : "deliver",
-                        warehouse    : newAvailability.warehouse.id,
-                        stock        : newAvailability.stock.id,
-                        product      : newAvailability.product.id,
-                        batch        : newAvailability.batch?.id,
-                        quantity     : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                        movementType    : "deliver",
+                        warehouse       : newAvailability.warehouse.id,
+                        stock           : newAvailability.stock.id,
+                        product         : newAvailability.product.id,
+                        batch           : newAvailability.batch?.id,
+                        quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                        productionOrder : productionOrder.id,
                     },
                 });
 
