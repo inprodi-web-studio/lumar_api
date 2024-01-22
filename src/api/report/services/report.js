@@ -48,6 +48,26 @@ module.exports = createCoreService("api::report.report", ({ strapi }) => ({
 
             const totalDesassignations = desassignations.reduce((sum, item) => sum + item.quantity, 0);
 
+            const productionOrders = await strapi.query(PRODUCTION_ORDER_MODEL).findMany({
+                where : {
+                    production : {
+                        materials : {
+                            isReady : false,
+                            uuid    : product.uuid,
+                        },
+                    },
+                },
+                populate : {
+                    production : {
+                        populate : {
+                            materials : {
+                                select : ["uuid","quantity", "totalReserved"],
+                            },
+                        },
+                    },
+                },
+            });
+
             product.totalQuantity   = availabilities.reduce((sum, item) => sum + item.quantity, 0);
             product.totalReserved   = availabilities.reduce((sum, item) => sum + (item.totalReserved ?? 0), 0);
             product.averageConsumed = parseFloat( ((totalAssignations - totalDesassignations) / assignations.length).toFixed(4) );
@@ -56,6 +76,11 @@ module.exports = createCoreService("api::report.report", ({ strapi }) => ({
                 : parseFloat( (product.totalQuantity / product.averageConsumed).toFixed(4) );
             product.minimun    = product.inventoryInfo.minimum ?? 0;
             product.difference = product.totalQuantity - product.minimun;
+            product.remaining  = product.totalQuantity - productionOrders.reduce((sum, item) => {
+                const index = item.production.materials.findIndex(material => material.uuid === product.uuid);
+
+                return sum + (parseFloat( (item.production.materials[index]?.quantity / product.unityConversionRate).toFixed(4) ) - parseFloat( (item.production.materials[index]?.totalReserved / product.unityConversionRate).toFixed(4) ) ?? 0);
+            }, 0);
         }
     },
 }));

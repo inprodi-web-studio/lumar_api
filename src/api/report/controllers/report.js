@@ -9,6 +9,13 @@ const send = require('koa-send');
 
 const { createCoreController } = require("@strapi/strapi").factories;
 
+const ivaDictionary = {
+	none    : 1,
+	cero    : 1,
+	eight   : 1.08,
+	sixteen : 1.16,
+};
+
 module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     async availabilities(ctx) {
         const { query } = ctx;
@@ -51,6 +58,9 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                     populate : {
                         unity : {
                             fields : ["uuid", "name"],
+                        },
+                        purchaseInfo : {
+                            fields : ["purchasePrice", "iva"],
                         },
                     },
                 },
@@ -111,12 +121,14 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             fields : ["uuid", "quantity", "totalReserved"],
             populate : {
                 product : {
-                    fields : ["uuid", "name"],
+                    fields : ["uuid", "name", "sku"],
                     populate : {
                         unity : {
                             fields : ["uuid", "name"],
                         },
-                        purchaseInfo : true,
+                        purchaseInfo : {
+                            fields : ["purchasePrice", "iva"],
+                        },
                     },
                 },
                 batch : {
@@ -140,6 +152,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 quantity      : availability.quantity,
                 totalReserved : availability.totalReserved,
                 value         : parseFloat( (availability.quantity * availability.product.purchaseInfo?.purchasePrice).toFixed(2) ) ?? 0,
+                valueTax      : parseFloat( (availability.quantity * availability.product.purchaseInfo?.purchasePrice * ivaDictionary[availability.product.purchaseInfo?.iva]).toFixed(2) ) ?? 0
             };
         });
 
@@ -152,6 +165,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 { id: 'quantity', title: 'Disponible' },
                 { id: 'totalReserved', title: 'Reservado' },
                 { id: 'value', title: 'Valor' },
+                { id: 'valueTax', title: 'Valor + IVA' },
             ]
         });
 
@@ -230,7 +244,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             },
         });
 
-        query.filters.movementType = "exit";
+        query.filters.movementType = "entrance";
 
         const entries = await strapi.query("api::stock-movement.stock-movement").count( query );
 
@@ -752,7 +766,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
         const products = await strapi.service("api::product.product").find({
             ...query,
-            fields : ["uuid", "name"],
+            fields : ["uuid", "name", "unityConversionRate"],
             populate : {
                 unity : {
                     fields : ["uuid", "name"],
