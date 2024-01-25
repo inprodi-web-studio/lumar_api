@@ -1364,7 +1364,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             products.push({
                 name        : order.production.product.name,
                 uuid        : order.production.product.uuid,
-                price       : order.production.product.saleInfo.salePrice,
+                price       : order.production.product.saleInfo?.salePrice ?? 0,
                 realCost    : 0,
                 plannedCost : 0,
             });
@@ -1404,23 +1404,8 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     async downloadMargins( ctx ) {
         const { query } = ctx;
 
-        if ( query.page ) {
-            query.pagination = {
-                page : query.page,
-                ...query.pagination,
-            }
-
-            delete query.page;
-        }
-
-        if ( query.limit ) {
-            query.pagination = {
-                ...query.pagination,
-                pageSize : query.limit,
-            }
-
-            delete query.limit;
-        }
+        delete query.page;
+        delete query.limit;
 
         const movementsRaw = await strapi.db.connection.raw(`
             SELECT 
@@ -1453,6 +1438,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             status : "closed",
             ...( query.search && {
                 production : {
+                    ...query.filters.production,
                     product : {
                         name : {
                             $contains : query.search,
@@ -1495,7 +1481,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             products.push({
                 name        : order.production.product.name,
                 uuid        : order.production.product.uuid,
-                price       : order.production.product.saleInfo.salePrice,
+                price       : order.production.product.saleInfo?.salePrice ?? 0,
                 realCost    : 0,
                 plannedCost : 0,
                 plannedMargin : 0,
@@ -1860,5 +1846,25 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         ctx.attachment('ventas.csv');
 
         await send(ctx, 'ventas.csv');
+    },
+
+    async traceabilityPt( ctx ) {
+        const { productUuid, batchUuid } = ctx.query;
+
+        
+    },
+
+    async downloadTraceabilityPt( ctx ) {
+        const { productUuid, batchUuid } = ctx.query;
+
+
+    },
+
+    async traceabilityMp( ctx ) {
+        
+    },
+
+    async downloadTraceabilityMp( ctx ) {
+        
     },
 }));

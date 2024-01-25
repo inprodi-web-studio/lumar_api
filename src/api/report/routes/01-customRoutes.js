@@ -90,5 +90,25 @@ module.exports = {
         path: "/reports/sales/download",
         handler: "report.downloadSales",
       },
+      {
+        method: "GET",
+        path: "/reports/traceability-pt",
+        handler: "report.traceabilityPt",
+      },
+      {
+        method: "GET",
+        path: "/reports/traceability-pt/download",
+        handler: "report.downloadTraceabilityPt",
+      },
+      {
+        method: "GET",
+        path: "/reports/traceability-mp",
+        handler: "report.traceabilityMp",
+      },
+      {
+        method: "GET",
+        path: "/reports/traceability-mp/download",
+        handler: "report.downloadTraceabilityMp",
+      }
     ],
 }
