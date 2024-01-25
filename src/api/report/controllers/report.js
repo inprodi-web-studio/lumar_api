@@ -2,6 +2,7 @@
 
 const { AVAILABILITY_MODEL, PRODUCT_MODEL, STOCK_MOVEMENT_MODEL, PRODUCTION_ORDER_MODEL } = require("../../../constants/models");
 const findMany = require("../../../helpers/findMany");
+const findOne = require("../../../helpers/findOne");
 const parseQueryFilters = require("../../../helpers/parseQueryFilters");
 
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
@@ -1849,22 +1850,168 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
     },
 
     async traceabilityPt( ctx ) {
-        const { productUuid, batchUuid } = ctx.query;
+        const { batchUuid } = ctx.query;
 
-        
+        const deliveries = await strapi.query( STOCK_MOVEMENT_MODEL ).findMany({
+            where : {
+                movementType : "deliver",
+                productionOrder : {
+                    production : {
+                        stock : {
+                            $contains : batchUuid,
+                        }
+                    },
+                },
+            },
+            select : ["quantity", "createdAt"],
+            populate : {
+                product : {
+                    select : ["uuid", "name"]
+                },
+                batch : {
+                    select : ["uuid", "name"]
+                },
+                productionOrder : {
+                    select : ["id", "status"],
+                },
+            },
+        });
+
+        return deliveries;
     },
 
     async downloadTraceabilityPt( ctx ) {
-        const { productUuid, batchUuid } = ctx.query;
+        const { batchUuid } = ctx.query;
 
+        const deliveries = await strapi.query( STOCK_MOVEMENT_MODEL ).findMany({
+            where : {
+                movementType : "deliver",
+                productionOrder : {
+                    production : {
+                        stock : {
+                            $contains : batchUuid,
+                        }
+                    },
+                },
+            },
+            select : ["quantity", "createdAt"],
+            populate : {
+                product : {
+                    select : ["uuid", "name"]
+                },
+                batch : {
+                    select : ["uuid", "name"]
+                },
+                productionOrder : {
+                    select : ["id", "status"],
+                },
+            },
+        });
 
+        const parsedData = deliveries.map((delivery) => {
+           return {
+               "product"         : delivery.product?.name ?? "-",
+               "batch"           : delivery.batch?.name ?? "-",
+               "quantity"        : delivery.quantity ?? "-",
+               "date"            : delivery.createdAt,
+               "productionOrder" : delivery.productionOrder?.id ?? "-",
+               "status"          : delivery.productionOrder?.status ?? "-",
+           }; 
+        });
+
+        const csvWriter = createCsvWriter({
+            path: 'rastrabilidad_pt.csv',
+            header: [
+                { id: 'product', title: 'Producto' },
+                { id: 'batch', title: 'Lote' },
+                { id: 'quantity', title: 'Cantidad' },
+                { id: 'date', title: 'Fecha' },
+                { id: 'productionOrder', title: '# OP' },
+                { id: 'status', title: 'Estado OP' },
+            ]
+        });
+
+        await csvWriter.writeRecords(parsedData);
+
+        ctx.attachment('rastrabilidad_pt.csv');
+
+        await send(ctx, 'rastrabilidad_pt.csv');
     },
 
     async traceabilityMp( ctx ) {
-        
+        const { batchUuid } = ctx.query;
+
+        const delivery = await strapi.query( STOCK_MOVEMENT_MODEL ).findOne({
+            where : {
+                movementType : "deliver",
+                batch : {
+                    uuid : batchUuid,
+                }
+            },
+            populate : {
+                productionOrder : {
+                    select : ["status"],
+                    populate : {
+                        production : {
+                            select : ["stock"],
+                        },
+                    },
+                },
+            },
+        });
+
+        return {
+            productionOrder : delivery?.productionOrder?.id,
+            status          : delivery?.productionOrder?.status,
+            stock           : delivery?.productionOrder?.production?.stock,
+        };
     },
 
     async downloadTraceabilityMp( ctx ) {
-        
+        const { batchUuid } = ctx.query;
+
+        const delivery = await strapi.query( STOCK_MOVEMENT_MODEL ).findOne({
+            where : {
+                movementType : "deliver",
+                batch : {
+                    uuid : batchUuid,
+                }
+            },
+            populate : {
+                productionOrder : {
+                    select : ["status"],
+                    populate : {
+                        production : {
+                            select : ["stock"],
+                        },
+                    },
+                },
+            },
+        });
+
+        const parsedData = delivery?.productionOrder?.production?.stock?.map((stock) => {
+            return {
+                "product"         : stock?.product ?? "-",
+                "batch"           : stock?.batch ?? "-",
+                "productionOrder" : delivery?.productionOrder?.id ?? "-",
+                "status"          : delivery?.productionOrder?.status ?? "-",
+            };
+        });
+
+        const csvWriter = createCsvWriter({
+            path: 'rastrabilidad_mp.csv',
+            header: [
+                { id: 'product', title: 'Producto' },
+                { id: 'batch', title: 'Lote' },
+                { id: 'productionOrder', title: '# OP' },
+                { id: 'status', title: 'Estado OP' },
+            ]
+        });
+
+        await csvWriter.writeRecords(parsedData);
+
+        ctx.attachment('rastrabilidad_mp.csv');
+
+        await send(ctx, 'rastrabilidad_mp.csv');
     },
 }));
