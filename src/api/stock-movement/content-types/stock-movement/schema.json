@@ -71,6 +71,11 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::production-order.production-order"
+    },
+    "customer": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::customer.customer"
     }
   }
 }

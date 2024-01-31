@@ -1127,6 +1127,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
     async addDeliver( ctx ) {
         const data     = ctx.request.body;
         const { uuid } = ctx.params;
+        const user     = ctx.state.user;
 
         await validateAddDeliver( data );
 
@@ -1201,6 +1202,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         batch           : newAvailability.batch?.id,
                         quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                         productionOrder : productionOrder.id,
+                        user            : user.id,
                     },
                 });
 
@@ -1244,6 +1246,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                             batch           : inAvailability.batch?.id,
                             quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                             productionOrder : productionOrder.id,
+                            user            : user.id,
                         },
                     });
 
@@ -1310,6 +1313,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         batch           : inAvailability.batch?.id,
                         quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                         productionOrder : productionOrder.id,
+                        user            : user.id,
                     },
                 });
 
@@ -1343,6 +1347,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         batch           : newAvailability.batch?.id,
                         quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
                         productionOrder : productionOrder.id,
+                        user            : user.id,
                     },
                 });
 

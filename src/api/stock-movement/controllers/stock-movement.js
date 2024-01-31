@@ -112,6 +112,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
              quantity     : data.quantity,
              batch        : availability.batch?.id,
              user         : ctx.state.user.id,
+             customer     : data.customer?.id,
             },
          });
 

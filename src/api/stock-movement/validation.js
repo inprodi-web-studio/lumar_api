@@ -20,6 +20,7 @@ const addExitSchema = yup.object().shape({
     price     : yup.number().min( 0, "Price can not be negative"),
     batch         : yup.string(),
     quantity      : yup.number().required("Quantity is required"),
+    customer      : yup.string().nullable(),
 }).noUnknown().strict();
 
 const addTransferSchema = yup.object().shape({
