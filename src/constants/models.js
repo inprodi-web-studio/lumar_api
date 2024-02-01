@@ -1,4 +1,5 @@
 module.exports = {
+    CUSTOMER                : "api::customer.customer",
     TAG_MODEL               : "api::tag.tag",
     USER_MODEL              : "plugin::users-permissions.user",
     BATCH_MODEL             : "api::batch.batch",
