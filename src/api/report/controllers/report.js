@@ -1637,6 +1637,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
         query.filters = {
             ...query.filters,
+            movementType : "deliver",
             ...( query.search && {
                 product : {
                     name : {
