@@ -1746,17 +1746,28 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         };
 
         const movementsRaw = await strapi.db.connection.raw(`
-            SELECT p.name as product_single, u.name as unity_single, SUM(sm.quantity) as quantity, c.name as customer
+            SELECT p.name as product_single, u.name as unity_single, SUM(sm.quantity) as quantity
             FROM stock_movements sm
             JOIN stock_movements_product_links smpl ON sm.id = smpl.stock_movement_id
             JOIN products p ON smpl.product_id = p.id
             JOIN products_unity_links pul ON p.id = pul.product_id
             JOIN unities u ON pul.unity_id = u.id
-            JOIN stock_movements_customer_links smcl ON smcl.stock_movement_id = sm.id
-            JOIN customers c ON smcl.customer_id = c.id
             WHERE sm.type = 'deal' AND sm.movement_type = 'exit'
             GROUP BY p.name, u.name;
         `);
+
+        // const movementsRaw = await strapi.db.connection.raw(`
+        //     SELECT p.name as product_single, u.name as unity_single, SUM(sm.quantity) as quantity, c.name as customer
+        //     FROM stock_movements sm
+        //     JOIN stock_movements_product_links smpl ON sm.id = smpl.stock_movement_id
+        //     JOIN products p ON smpl.product_id = p.id
+        //     JOIN products_unity_links pul ON p.id = pul.product_id
+        //     JOIN unities u ON pul.unity_id = u.id
+        //     JOIN stock_movements_customer_links smcl ON smcl.stock_movement_id = sm.id
+        //     JOIN customers c ON smcl.customer_id = c.id
+        //     WHERE sm.type = 'deal' AND sm.movement_type = 'exit'
+        //     GROUP BY p.name, u.name;
+        // `);
 
         return {
             data : movementsRaw[0],
