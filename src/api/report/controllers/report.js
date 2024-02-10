@@ -52,7 +52,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
 
         const availabilities = await strapi.service("api::availability.availability").find({
             ...query,
-            fields : ["uuid", "quantity", "totalReserved"],
+            fields : ["uuid", "quantity", "totalReserved", "price"],
             populate : {
                 product : {
                     fields : ["uuid", "name", "sku"],
@@ -63,6 +63,9 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                         purchaseInfo : {
                             fields : ["purchasePrice", "iva"],
                         },
+                        saleInfo : {
+                            fields : ["salePrice", "iva"],
+                        }
                     },
                 },
                 batch : {
@@ -73,6 +76,15 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 }
             },
         });
+
+        for ( const availability of availabilities.results ) {
+            if ( availability.product.type !== "mp" ) {
+                availability.purchaseInfo = {};
+
+                availability.purchaseInfo.purchasePrice = parseFloat( (availability.quantity * availability.price).toFixed(4) );
+                availability.purchaseInfo.iva = availability.product.saleInfo?.iva;
+            }
+        }
 
         return {
             data : availabilities.results,
@@ -150,6 +162,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 product       : availability.product?.name ?? "-",
                 unity         : availability.product.unity?.name ?? "-",
                 batch         : availability.batch?.name ?? "-",
+                stock         : availability.stock?.name ?? "-",
                 quantity      : availability.quantity,
                 totalReserved : availability.totalReserved,
                 value         : parseFloat( (availability.quantity * availability.product.purchaseInfo?.purchasePrice).toFixed(2) ) ?? 0,
@@ -160,9 +173,10 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         const csvWriter = createCsvWriter({
             path: 'inventarios.csv',
             header: [
-                { id: 'product', title: 'Product' },
+                { id: 'product', title: 'Producto' },
                 { id: 'unity', title: 'Unidad' },
                 { id: 'batch', title: 'Lote' },
+                { id: 'stock', title: 'Inventario' },
                 { id: 'quantity', title: 'Disponible' },
                 { id: 'totalReserved', title: 'Reservado' },
                 { id: 'value', title: 'Valor' },
