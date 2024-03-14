@@ -10,6 +10,15 @@ module.exports = ( plugin ) => {
 
     plugin.routes["content-api"].routes.push({
         method  : "PUT",
+        path    : "/users/change-password/:uuid",
+        handler : "user.changePassword",
+        config  : {
+            prefix : "",
+        },
+    });
+
+    plugin.routes["content-api"].routes.push({
+        method  : "PUT",
         path    : "/users/toggle-status/:user_uuid",
         handler : "user.toggleStatus",
         config  : {

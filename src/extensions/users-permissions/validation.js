@@ -33,6 +33,11 @@ const updateUserSchema = yup.object().shape({
     role            : yup.string().required("Password is required"),
 }).noUnknown().strict();
 
+const changePasswordSchema = yup.object().shape({
+    password        : yup.string().required("Password is required"),
+    passwordConfirm : yup.string().required("Password confirmation is required"),
+});
+
 module.exports = {
     validateLogin          : validateYupSchema( loginSchema ),
     validateForgotPassword : validateYupSchema( forgotPasswordSchema ),
@@ -40,4 +45,5 @@ module.exports = {
     validateResetPassword  : validateYupSchema( resetPasswordSchema ),
     validateAddUser        : validateYupSchema( addUserSchema ),
     validateUpdateUser     : validateYupSchema( updateUserSchema ),
+    validateChangePassword : validateYupSchema( changePasswordSchema ),
 };

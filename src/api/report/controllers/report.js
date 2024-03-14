@@ -1337,7 +1337,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             status : "closed",
             ...( query.search && {
                 production : {
-                    ...query.filters.production,
+                    ...query.filters?.production,
                     product : {
                         name : {
                             $contains : query.search,
@@ -1454,7 +1454,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             status : "closed",
             ...( query.search && {
                 production : {
-                    ...query.filters.production,
+                    ...query.filters?.production,
                     product : {
                         name : {
                             $contains : query.search,

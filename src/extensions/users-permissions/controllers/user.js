@@ -5,6 +5,7 @@ const {
 
 const {
     validateAddUser, validateUpdateUser,
+    validateChangePassword,
 } = require("../validation");
 
 const {
@@ -24,8 +25,6 @@ const userFields = {
         },
     },
 };
-
-// Temporal Comment
 
 module.exports = ( plugin ) => {
     plugin.controllers.user["find"] = async ( ctx ) => {
@@ -150,6 +149,32 @@ module.exports = ( plugin ) => {
         });
 
         updatedUser.role = updatedUser.role.name;
+
+        return updatedUser;
+    };
+
+    plugin.controllers.user["changePassword"] = async ( ctx ) => {
+        const { uuid } = ctx.params;
+        const data     = ctx.request.body;
+
+        await validateChangePassword( data );
+
+        if ( data.password !== data.passwordConfirm ) {
+            throw new BadRequestError( "Passwords don't match", {
+                key  : "auth.differentPasswords",
+                path : ctx.request.path,
+            });
+        }
+
+        const user = await findOne( uuid, USER_MODEL );
+
+        const updatedUser = await strapi.entityService.update( USER_MODEL, user.id, {
+            data : {
+                password : data.password,
+            },
+            fields   : userFields.fields,
+            populate : userFields.populate,
+        });
 
         return updatedUser;
     };
