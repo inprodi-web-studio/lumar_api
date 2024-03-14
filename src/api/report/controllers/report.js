@@ -1,5 +1,7 @@
 "use strict";
 
+const moment = require('moment-timezone');
+
 const { AVAILABILITY_MODEL, PRODUCT_MODEL, STOCK_MOVEMENT_MODEL, PRODUCTION_ORDER_MODEL } = require("../../../constants/models");
 const findMany = require("../../../helpers/findMany");
 const findOne = require("../../../helpers/findOne");
@@ -380,6 +382,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         }
 
         const parsedData = stockMovements.results.map((stockMovement) => {
+            const dateInMexicoCityTimezone = moment(stockMovement.createdAt).tz('America/Mexico_City').format('YYYY-MM-DD HH:mm:ss');
             return {
                 "product"  : stockMovement.product?.name ?? "-",
                 "movement" : movementsDictionary[ stockMovement.movementType ] ?? "-",
@@ -388,7 +391,7 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
                 "batch"    : stockMovement.batch?.name ?? "-",
                 "quantity" : stockMovement.quantity ?? "-",
                 "unity"    : stockMovement.product?.unity?.name ?? "-",
-                "date"     : stockMovement.createdAt,
+                "date"     : dateInMexicoCityTimezone,
                 "user"     : stockMovement.user ? `${stockMovement.user.name} ${stockMovement.user.lastName}` : "-",
             }
         });
@@ -713,19 +716,21 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             cancelled : "Cancelada",
         };
 
-        const parsedData = productionOrders.results.map( ( productionOrder ) =>( {
-           "order"        : productionOrder.id,
-           "product"      : productionOrder.production?.product?.name ?? "-",
-           "quantity"     : productionOrder.production.quantity,
-           "delivered"    : productionOrder.production?.delivered ?? 0,
-           "progress"     : productionOrder.production?.delivered / productionOrder.production?.quantity ?? 0,
-           "status"       : statusDictionary[ productionOrder.status ] ?? "-",
-            "date"        : productionOrder.createdAt,
-            "plannedCost" : productionOrder.plannedCost,
-            "realCost"    : productionOrder.realCost,
-            "loss"        : productionOrder.loss,
-        }));
-
+        const parsedData = productionOrders.results.map((productionOrder) => {
+            const dateInMexicoCityTimezone = moment(productionOrder.createdAt).tz('America/Mexico_City').format('YYYY-MM-DD HH:mm:ss');
+            return {
+                "order"       : productionOrder.id,
+                "product"     : productionOrder.production?.product?.name ?? "-",
+                "quantity"    : productionOrder.production.quantity,
+                "delivered"   : productionOrder.production?.delivered ?? 0,
+                "progress"    : (productionOrder.production?.delivered / productionOrder.production?.quantity) ?? 0,
+                "status"      : statusDictionary[productionOrder.status] ?? "-",
+                "date"        : dateInMexicoCityTimezone,
+                "plannedCost" : productionOrder.plannedCost,
+                "realCost"    : productionOrder.realCost,
+                "loss"        : productionOrder.loss,
+            };
+        });
         const csvWriter = createCsvWriter({
             path: 'ordenes_producción.csv',
             header: [
@@ -1692,13 +1697,15 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
             },
         });
 
+
         const parsedData = stockMovements.results.map((stockMovement) => {
+            const dateInMexicoCityTimezone = moment(stockMovement.createdAt).tz('America/Mexico_City').format('YYYY-MM-DD HH:mm:ss');
             return {
                 "product"  : stockMovement.product?.name ?? "-",
                 "batch"    : stockMovement.batch?.name ?? "-",
                 "quantity" : stockMovement.quantity ?? "-",
                 "unity"    : stockMovement.product?.unity?.name ?? "-",
-                "date"     : stockMovement.createdAt,
+                "date"     : dateInMexicoCityTimezone,
                 "user"     : stockMovement.user ? `${stockMovement.user.name} ${stockMovement.user.lastName}` : "-",
             }
         });
@@ -1938,14 +1945,15 @@ module.exports = createCoreController("api::report.report", ({ strapi }) => ({
         });
 
         const parsedData = deliveries.map((delivery) => {
-           return {
-               "product"         : delivery.product?.name ?? "-",
-               "batch"           : delivery.batch?.name ?? "-",
-               "quantity"        : delivery.quantity ?? "-",
-               "date"            : delivery.createdAt,
-               "productionOrder" : delivery.productionOrder?.id ?? "-",
-               "status"          : delivery.productionOrder?.status ?? "-",
-           }; 
+            const dateInMexicoCityTimezone = moment(delivery.createdAt).tz('America/Mexico_City').format('YYYY-MM-DD HH:mm:ss');
+            return {
+                "product"         : delivery.product?.name ?? "-",
+                "batch"           : delivery.batch?.name ?? "-",
+                "quantity"        : delivery.quantity ?? "-",
+                "date"            : dateInMexicoCityTimezone,
+                "productionOrder" : delivery.productionOrder?.id ?? "-",
+                "status"          : delivery.productionOrder?.status ?? "-",
+            }; 
         });
 
         const csvWriter = createCsvWriter({
