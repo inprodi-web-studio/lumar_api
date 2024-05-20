@@ -6,6 +6,7 @@ const {
     WAREHOUSE_MODEL,
     STOCK_MOVEMENT_MODEL,
     ADJUSTMENT_MOTIVE_MODEL,
+    CUSTOMER,
 } = require("../../../constants/models");
 
 const {
@@ -101,6 +102,12 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
             availability = await strapi.service( STOCK_MOVEMENT_MODEL ).handleBatchExitCreation( data, warehouse, product, stock );
         }
 
+        if ( data.customer ) {
+            const customer = await findOne( data.customer, CUSTOMER );
+
+            data.customer = customer.id;
+        }
+
         await strapi.entityService.create( STOCK_MOVEMENT_MODEL, {
             data : {
              movementType : "exit",
@@ -112,7 +119,7 @@ module.exports = createCoreController( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
              quantity     : data.quantity,
              batch        : availability.batch?.id,
              user         : ctx.state.user.id,
-             customer     : data.customer?.id,
+             customer     : data.customer,
             },
          });
 

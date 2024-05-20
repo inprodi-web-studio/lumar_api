@@ -1183,9 +1183,9 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
 
                 const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
                     data : {
-                        stock     : process.env.NODE_ENV === "production" ? 114 : 103,
+                        stock     : process.env.NODE_ENV === "production" ? 115 : 103,
                         warehouse : productionOrder.warehouse.id,
-                        quantity  : parseFloat( (data.quantity / product.unityConversionRate).toFixed(4) ),
+                        quantity  : parseFloat( (data.quantity).toFixed(4) ),
                         product   : product.id,
                         batch     : newBatch.id,
                     },
@@ -1200,7 +1200,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         stock           : newAvailability.stock.id,
                         product         : newAvailability.product.id,
                         batch           : newAvailability.batch?.id,
-                        quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                        quantity        : parseFloat((data.quantity).toFixed(4)),
                         productionOrder : productionOrder.id,
                         user            : user.id,
                     },
@@ -1222,7 +1222,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         batch     : batch.id,
                         warehouse : productionOrder.warehouse.id,
                         product   : product.id,
-                        stock     : process.env.NODE_ENV === "production" ? 114 : 103,
+                        stock     : process.env.NODE_ENV === "production" ? 115 : 103,
                     },
                     fields   : availabilityFields.fields,
                     populate : availabilityFields.populate,
@@ -1231,7 +1231,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 if ( inAvailability ) {
                     const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
                         data : {
-                            quantity : parseFloat( (inAvailability.quantity + (data.quantity / product.unityConversionRate)).toFixed(4) ),
+                            quantity : parseFloat( (inAvailability.quantity + (data.quantity)).toFixed(4) ),
                         },
                         fields   : availabilityFields.fields,
                         populate : availabilityFields.populate,
@@ -1244,7 +1244,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                             stock           : inAvailability.stock.id,
                             product         : inAvailability.product.id,
                             batch           : inAvailability.batch?.id,
-                            quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                            quantity        : parseFloat((data.quantity).toFixed(4)),
                             productionOrder : productionOrder.id,
                             user            : user.id,
                         },
@@ -1262,9 +1262,9 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                 } else {
                     const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
                         data : {
-                            stock     : process.env.NODE_ENV === "production" ? 114 : 103,
+                            stock     : process.env.NODE_ENV === "production" ? 115 : 103,
                             warehouse : productionOrder.warehouse.id,
-                            quantity  : parseFloat( (data.quantity / product.unityConversionRate).toFixed(4) ),
+                            quantity  : parseFloat( (data.quantity).toFixed(4) ),
                             product   : product.id,
                             batch     : batch.id,
                         },
@@ -1298,7 +1298,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             if ( inAvailability ) {
                 const updatedAvailability = await strapi.entityService.update( AVAILABILITY_MODEL, inAvailability.id, {
                     data : {
-                        quantity : parseFloat( (inAvailability.quantity + (data.quantity / product.unityConversionRate)).toFixed(4) ),
+                        quantity : parseFloat( (inAvailability.quantity + (data.quantity)).toFixed(4) ),
                     },
                     fields   : availabilityFields.fields,
                     populate : availabilityFields.populate,
@@ -1311,7 +1311,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         stock           : inAvailability.stock.id,
                         product         : inAvailability.product.id,
                         batch           : inAvailability.batch?.id,
-                        quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                        quantity        : parseFloat((data.quantity).toFixed(4)),
                         productionOrder : productionOrder.id,
                         user            : user.id,
                     },
@@ -1329,9 +1329,9 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
             } else {
                 const newAvailability = await strapi.entityService.create( AVAILABILITY_MODEL, {
                     data : {
-                        stock     : process.env.NODE_ENV === "production" ? 114 : 103,
+                        stock     : process.env.NODE_ENV === "production" ? 115 : 103,
                         warehouse : productionOrder.warehouse.id,
-                        quantity  : parseFloat( (data.quantity / product.unityConversionRate).toFixed(4) ),
+                        quantity  : parseFloat( (data.quantity).toFixed(4) ),
                         product   : product.id,
                     },
                     fields   : availabilityFields.fields,
@@ -1345,7 +1345,7 @@ module.exports = createCoreController( PRODUCTION_ORDER_MODEL, ({ strapi }) => (
                         stock           : newAvailability.stock.id,
                         product         : newAvailability.product.id,
                         batch           : newAvailability.batch?.id,
-                        quantity        : parseFloat((data.quantity / product.unityConversionRate).toFixed(4)),
+                        quantity        : parseFloat((data.quantity).toFixed(4)),
                         productionOrder : productionOrder.id,
                         user            : user.id,
                     },
