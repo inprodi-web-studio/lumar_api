@@ -48,7 +48,8 @@
       "enum": [
         "deal",
         "warranty",
-        "return"
+        "return",
+        "factory"
       ]
     },
     "price": {
