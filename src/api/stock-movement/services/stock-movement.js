@@ -151,9 +151,9 @@ module.exports = createCoreService( STOCK_MOVEMENT_MODEL, ({ strapi }) => ({
                 return newAvailability;
             }
         } else {
-            if ( !data.price ) {
-                throw new UnprocessableContentError( ["Price is required"] );
-            }
+            // if ( !data.price ) {
+            //     throw new UnprocessableContentError( ["Price is required"] );
+            // }
 
             if ( product.inventoryInfo?.expirationDays && !data.expirationDay ) {
                 throw new UnprocessableContentError( ["Expiration day is required beacuse the product has being configured to manage expiration"] );
